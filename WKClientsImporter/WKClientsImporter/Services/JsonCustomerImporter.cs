@@ -1,5 +1,4 @@
-﻿using CsvHelper;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -61,6 +60,48 @@ namespace WKClientsImporter.Services
 
                     return records;
                 }
+            });
+        }
+
+        public async Task<List<Customer>> ImportAsyncBytes(string filePath, IProgress<int> progress)
+        {
+            return await Task.Run(() =>
+            {
+                var customers = new List<Customer>();
+                var serializer = new JsonSerializer();
+
+                using (var sr = new StreamReader(filePath))
+                using (var reader = new JsonTextReader(sr))
+                {
+                    // Suponemos que el JSON es un array de objetos: [{}, {}]
+                    // Para el progreso, usamos la longitud del stream (bytes leídos)
+                    long totalBytes = sr.BaseStream.Length;
+
+                    // Avanzamos hasta el inicio del array
+                    while (reader.Read())
+                    {
+                        if (reader.TokenType == JsonToken.StartArray) break;
+                    }
+
+                    while (reader.Read())
+                    {
+                        if (reader.TokenType == JsonToken.EndArray) break;
+
+                        if (reader.TokenType == JsonToken.StartObject)
+                        {
+                            var customer = serializer.Deserialize<Customer>(reader);
+                            customers.Add(customer);
+
+                            // Reportar progreso basado en la posición del stream
+                            if (totalBytes > 0)
+                            {
+                                int percentage = (int)((sr.BaseStream.Position * 100) / totalBytes);
+                                progress?.Report(Math.Min(percentage, 100));
+                            }
+                        }
+                    }
+                }
+                return customers;
             });
         }
     }
