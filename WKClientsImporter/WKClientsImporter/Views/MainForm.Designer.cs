@@ -38,23 +38,24 @@
             // dgvCustomers
             // 
             this.dgvCustomers.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dgvCustomers.Location = new System.Drawing.Point(156, 41);
+            this.dgvCustomers.Location = new System.Drawing.Point(12, 74);
             this.dgvCustomers.Name = "dgvCustomers";
-            this.dgvCustomers.Size = new System.Drawing.Size(430, 253);
+            this.dgvCustomers.RowHeadersWidth = 51;
+            this.dgvCustomers.Size = new System.Drawing.Size(665, 429);
             this.dgvCustomers.TabIndex = 0;
             // 
             // pbImport
             // 
-            this.pbImport.Location = new System.Drawing.Point(156, 300);
+            this.pbImport.Location = new System.Drawing.Point(126, 41);
             this.pbImport.Name = "pbImport";
-            this.pbImport.Size = new System.Drawing.Size(430, 27);
+            this.pbImport.Size = new System.Drawing.Size(430, 13);
             this.pbImport.TabIndex = 1;
             // 
             // btnImportCsv
             // 
-            this.btnImportCsv.Location = new System.Drawing.Point(511, 333);
+            this.btnImportCsv.Location = new System.Drawing.Point(141, 12);
             this.btnImportCsv.Name = "btnImportCsv";
-            this.btnImportCsv.Size = new System.Drawing.Size(75, 23);
+            this.btnImportCsv.Size = new System.Drawing.Size(106, 23);
             this.btnImportCsv.TabIndex = 2;
             this.btnImportCsv.Text = "Import CSV";
             this.btnImportCsv.UseVisualStyleBackColor = true;
@@ -62,9 +63,9 @@
             // 
             // btnImportJson
             // 
-            this.btnImportJson.Location = new System.Drawing.Point(511, 362);
+            this.btnImportJson.Location = new System.Drawing.Point(253, 12);
             this.btnImportJson.Name = "btnImportJson";
-            this.btnImportJson.Size = new System.Drawing.Size(75, 23);
+            this.btnImportJson.Size = new System.Drawing.Size(106, 23);
             this.btnImportJson.TabIndex = 3;
             this.btnImportJson.Text = "Import JSON";
             this.btnImportJson.UseVisualStyleBackColor = true;
@@ -76,7 +77,9 @@
             this.Controls.Add(this.btnImportCsv);
             this.Controls.Add(this.pbImport);
             this.Controls.Add(this.dgvCustomers);
+            this.Font = new System.Drawing.Font("Arial Rounded MT Bold", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Name = "MainForm";
+            this.Text = "WK-Customer-Importer";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             ((System.ComponentModel.ISupportInitialize)(this.dgvCustomers)).EndInit();
             this.ResumeLayout(false);
