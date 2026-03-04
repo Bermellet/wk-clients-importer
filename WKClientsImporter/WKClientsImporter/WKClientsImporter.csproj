@@ -78,7 +78,7 @@
     <Compile Include="Interfaces\IDataImporter.cs" />
     <Compile Include="Interfaces\IStorageService.cs" />
     <Compile Include="Interfaces\ITemplateBuilder.cs" />
-    <Compile Include="Models\BaseModel.cs" />
+    <Compile Include="Models\BaseEntity.cs" />
     <Compile Include="Models\Customer.cs" />
     <Compile Include="Models\Validators\CustomerValidator.cs" />
     <Compile Include="Program.cs" />

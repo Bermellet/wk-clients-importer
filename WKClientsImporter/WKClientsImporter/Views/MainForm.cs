@@ -130,7 +130,7 @@ namespace WKClientsImporter.Views
             }
         }
 
-        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        protected override void OnFormClosing(FormClosingEventArgs e)
         {
             _storageService.Save(_customers, _localDbPath);
             base.OnFormClosing(e);

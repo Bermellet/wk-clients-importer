@@ -71,6 +71,7 @@
             this.btnImportJson.TabIndex = 3;
             this.btnImportJson.Text = "Import JSON";
             this.btnImportJson.UseVisualStyleBackColor = true;
+            this.btnImportJson.Click += new System.EventHandler(this.btnImportJson_Click);
             // 
             // btnCsvTemplate
             // 
@@ -104,7 +105,6 @@
             this.Font = new System.Drawing.Font("Arial Rounded MT Bold", 7.8F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Name = "MainForm";
             this.Text = "WK-Customer-Importer";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
             ((System.ComponentModel.ISupportInitialize)(this.dgvCustomers)).EndInit();
             this.ResumeLayout(false);
 

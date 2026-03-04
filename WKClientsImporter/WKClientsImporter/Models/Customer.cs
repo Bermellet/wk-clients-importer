@@ -5,7 +5,7 @@ using WKClientsImporter.Models.Validators;
 
 namespace WKClientsImporter.Models
 {
-    public class Customer //: BaseModel
+    public class Customer
     {
         [Required]
         [RegularExpression(@"^[0-9]{8}[A-Z]$", ErrorMessage = "DNI format incorrect")]

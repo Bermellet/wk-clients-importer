@@ -1,9 +1,8 @@
-﻿
-using System;
+﻿using System;
 
 namespace WKClientsImporter.Models
 {
-    public class BaseModel
+    public class BaseEntity
     {
         public int Id { get; set; }
         public DateTime CreationDate { get; set; }
