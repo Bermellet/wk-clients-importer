@@ -40,10 +40,10 @@
             // dgvCustomers
             // 
             this.dgvCustomers.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dgvCustomers.Location = new System.Drawing.Point(12, 89);
+            this.dgvCustomers.Location = new System.Drawing.Point(7, 89);
             this.dgvCustomers.Name = "dgvCustomers";
             this.dgvCustomers.RowHeadersWidth = 51;
-            this.dgvCustomers.Size = new System.Drawing.Size(665, 414);
+            this.dgvCustomers.Size = new System.Drawing.Size(665, 460);
             this.dgvCustomers.TabIndex = 0;
             // 
             // pbImport
@@ -95,7 +95,7 @@
             // 
             // MainForm
             // 
-            this.ClientSize = new System.Drawing.Size(699, 515);
+            this.ClientSize = new System.Drawing.Size(684, 561);
             this.Controls.Add(this.btnJsonTemplate);
             this.Controls.Add(this.btnCsvTemplate);
             this.Controls.Add(this.btnImportJson);

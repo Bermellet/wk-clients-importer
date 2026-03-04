@@ -11,25 +11,25 @@ namespace WKClientsImporter.Views
     public partial class MainForm : Form
     {
         private BindingList<Customer> _customers;
-        private readonly IStorageService _storageService;
         private readonly IDataImporter _csvImporterService;
         private readonly IDataImporter _jsonImporterService;
+        private readonly IStorageService _storageService;
         private readonly ITemplateBuilder _templateBuilder;
-        private readonly string _localDbPath = "clients_store.json";
 
-        public MainForm()
+        public MainForm(IStorageService storageService, IDataImporter csvImporter,
+            IDataImporter jsonImporter, ITemplateBuilder templateBuilder)
         {
             InitializeComponent();
-            _storageService = new JsonStorageService(); // TODO: Inyección de Dependencias
-            _csvImporterService = new CsvCustomerImporter(); // TODO: Inyección de Dependencias
-            _jsonImporterService = new JsonCustomerImporter(); // TODO: Inyección de Dependencias
-            _templateBuilder = new TemplateBuilderService(); // TODO: Inyección de Dependencias
+            _storageService = storageService;
+            _csvImporterService = csvImporter;
+            _jsonImporterService = jsonImporter;
+            _templateBuilder = templateBuilder;
             LoadInitialData();
         }
 
         private void LoadInitialData()
         {
-            var data = _storageService.Load(_localDbPath) ?? new List<Customer>();
+            var data = _storageService.Load() ?? new List<Customer>();
             _customers = new BindingList<Customer>(data);
             dgvCustomers.DataSource = _customers;
         }
@@ -132,7 +132,7 @@ namespace WKClientsImporter.Views
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            _storageService.Save(_customers, _localDbPath);
+            _storageService.Save(_customers);
             base.OnFormClosing(e);
         }
     }

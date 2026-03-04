@@ -1,8 +1,11 @@
-﻿using System;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using WKClientsImporter.Interfaces;
+using WKClientsImporter.Services;
 using WKClientsImporter.Views;
 
 namespace WKClientsImporter
@@ -17,7 +20,17 @@ namespace WKClientsImporter
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new MainForm());
+
+            // Dependency Injection
+            var services = new ServiceCollection();
+            services.AddTransient<MainForm>();
+            services.AddSingleton<IStorageService, JsonStorageService>();
+            services.AddSingleton<IDataImporter, CsvCustomerImporter>();
+            services.AddSingleton<IDataImporter, JsonCustomerImporter>();
+            services.AddSingleton<ITemplateBuilder, TemplateBuilderService>();
+
+            var provider = services.BuildServiceProvider();
+            Application.Run(provider.GetRequiredService<MainForm>());
         }
     }
 }

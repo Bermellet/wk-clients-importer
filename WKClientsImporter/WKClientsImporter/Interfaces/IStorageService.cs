@@ -5,7 +5,7 @@ namespace WKClientsImporter.Interfaces
 {
     public interface IStorageService
     {
-        void Save(IEnumerable<Customer> customers, string filePath);
-        List<Customer> Load(string filePath);
+        void Save(IEnumerable<Customer> customers);
+        List<Customer> Load();
     }
 }

@@ -8,17 +8,19 @@ namespace WKClientsImporter.Services
 {
     public class JsonStorageService : IStorageService
     {
-        public void Save(IEnumerable<Customer> customers, string filePath)
+        private readonly string _localDbPath = "clients_store.json";
+
+        public void Save(IEnumerable<Customer> customers)
         {
             string json = JsonConvert.SerializeObject(customers, Formatting.Indented);
-            File.WriteAllText(filePath, json);
+            File.WriteAllText(_localDbPath, json);
         }
 
-        public List<Customer> Load(string filePath)
+        public List<Customer> Load()
         {
-            if (!File.Exists(filePath)) return new List<Customer>();
+            if (!File.Exists(_localDbPath)) return new List<Customer>();
 
-            string json = File.ReadAllText(filePath);
+            string json = File.ReadAllText(_localDbPath);
             return JsonConvert.DeserializeObject<List<Customer>>(json) ?? new List<Customer>();
         }
     }
