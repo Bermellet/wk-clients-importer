@@ -14,7 +14,8 @@ namespace WKClientsImporter.Views
         private readonly IStorageService _storageService;
         private readonly IDataImporter _csvImporterService;
         private readonly IDataImporter _jsonImporterService;
-        private readonly string _localDbPath = "clientes_store.json";
+        private readonly ITemplateBuilder _templateBuilder;
+        private readonly string _localDbPath = "clients_store.json";
 
         public MainForm()
         {
@@ -22,6 +23,7 @@ namespace WKClientsImporter.Views
             _storageService = new JsonStorageService(); // TODO: Inyección de Dependencias
             _csvImporterService = new CsvCustomerImporter(); // TODO: Inyección de Dependencias
             _jsonImporterService = new JsonCustomerImporter(); // TODO: Inyección de Dependencias
+            _templateBuilder = new TemplateBuilderService(); // TODO: Inyección de Dependencias
             LoadInitialData();
         }
 
@@ -53,11 +55,11 @@ namespace WKClientsImporter.Views
                     }
 
                     pbImport.Value = 0; // Reset
-                    MessageBox.Show($"Se han importado {importedData.Count} clientes.");
+                    MessageBox.Show($"{importedData.Count} customers have been imported");
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error al importar: {ex.Message}");
+                    MessageBox.Show($"Error importing: {ex.Message}");
                 }
             }
         }
@@ -81,11 +83,49 @@ namespace WKClientsImporter.Views
                     }
 
                     pbImport.Value = 0; // Reset
-                    MessageBox.Show($"Se han importado {importedData.Count} clientes.");
+                    MessageBox.Show($"{importedData.Count} customers have been imported");
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error al importar: {ex.Message}");
+                    MessageBox.Show($"Error importing: {ex.Message}");
+                }
+            }
+        }
+
+        private async void btnCsvTemplate_Click(object sender, EventArgs e)
+        {
+            using (var dialog = new SaveFileDialog { Filter = "CSV Files|*.csv", FileName = "clients_template.csv" })
+            {
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        await _templateBuilder.BuildCsvTemplateAsync(dialog.FileName);
+                        MessageBox.Show("CSV template correctly generated", "Template created", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Error creating CSV template: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
+        private async void btnJsonTemplate_Click(object sender, EventArgs e)
+        {
+            using (var dialog = new SaveFileDialog { Filter = "JSON Files|*.json", FileName = "clients_template.json" })
+            {
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        await _templateBuilder.BuildJsonTemplateAsync(dialog.FileName);
+                        MessageBox.Show("JSON template correctly generated", "Template created", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Error creating JSON template: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
                 }
             }
         }
