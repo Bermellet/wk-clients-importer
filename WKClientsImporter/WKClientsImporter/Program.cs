@@ -1,8 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using WKClientsImporter.Interfaces;
 using WKClientsImporter.Services;
@@ -25,9 +22,11 @@ namespace WKClientsImporter
             var services = new ServiceCollection();
             services.AddTransient<MainForm>();
             services.AddSingleton<IStorageService, JsonStorageService>();
-            services.AddSingleton<IDataImporter, CsvCustomerImporter>();
-            services.AddSingleton<IDataImporter, JsonCustomerImporter>();
             services.AddSingleton<ITemplateBuilder, TemplateBuilderService>();
+            // Importing services
+            services.AddSingleton<IDataImporter, FileImporterService>();
+            services.AddSingleton<IFileFormatImporter, CsvCustomerImporter>();
+            services.AddSingleton<IFileFormatImporter, JsonCustomerImporter>();
 
             var provider = services.BuildServiceProvider();
             Application.Run(provider.GetRequiredService<MainForm>());

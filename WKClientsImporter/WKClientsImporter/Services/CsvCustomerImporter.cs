@@ -10,8 +10,13 @@ using WKClientsImporter.Models;
 
 namespace WKClientsImporter.Services
 {
-    public class CsvCustomerImporter : IDataImporter
+    public class CsvCustomerImporter : IFileFormatImporter
     {
+        public bool CanImport(string filePath)
+        {
+            return string.Equals(Path.GetExtension(filePath), ".csv", StringComparison.OrdinalIgnoreCase);
+        }
+
         public async Task<List<Customer>> ImportAsync(string filePath, IProgress<int> progress)
         {
             return await Task.Run(() =>

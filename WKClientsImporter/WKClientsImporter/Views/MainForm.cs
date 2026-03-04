@@ -4,25 +4,22 @@ using System.ComponentModel;
 using System.Windows.Forms;
 using WKClientsImporter.Interfaces;
 using WKClientsImporter.Models;
-using WKClientsImporter.Services;
 
 namespace WKClientsImporter.Views
 {
     public partial class MainForm : Form
     {
         private BindingList<Customer> _customers;
-        private readonly IDataImporter _csvImporterService;
-        private readonly IDataImporter _jsonImporterService;
+        private readonly IDataImporter _importerService;
         private readonly IStorageService _storageService;
         private readonly ITemplateBuilder _templateBuilder;
 
-        public MainForm(IStorageService storageService, IDataImporter csvImporter,
-            IDataImporter jsonImporter, ITemplateBuilder templateBuilder)
+        public MainForm(IStorageService storageService, IDataImporter importerService,
+            ITemplateBuilder templateBuilder)
         {
             InitializeComponent();
             _storageService = storageService;
-            _csvImporterService = csvImporter;
-            _jsonImporterService = jsonImporter;
+            _importerService = importerService;
             _templateBuilder = templateBuilder;
             LoadInitialData();
         }
@@ -38,7 +35,7 @@ namespace WKClientsImporter.Views
         // TODO: Avoid blocking Task.Run, IProgress<T> ?
         private async void btnImportCsv_Click(object sender, EventArgs e)
         {
-            OpenFileDialog dialog = new OpenFileDialog { Filter = "CSV Files|*.csv" };
+            OpenFileDialog dialog = new OpenFileDialog { Filter = "CSV Files|*.csv" }; // TODO; Single file, get extensions from service
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
@@ -46,7 +43,7 @@ namespace WKClientsImporter.Views
 
                 try
                 {
-                    var importedData = await _csvImporterService.ImportAsync(dialog.FileName, progress);
+                    var importedData = await _importerService.ImportAsync(dialog.FileName, progress);
 
                     // Actualizamos BindingList (la UI se refresca sola)
                     foreach (var item in importedData)
@@ -74,7 +71,7 @@ namespace WKClientsImporter.Views
 
                 try
                 {
-                    var importedData = await _jsonImporterService.ImportAsync(dialog.FileName, progress);
+                    var importedData = await _importerService.ImportAsync(dialog.FileName, progress);
 
                     // Actualizamos BindingList (la UI se refresca sola)
                     foreach (var customer in importedData)

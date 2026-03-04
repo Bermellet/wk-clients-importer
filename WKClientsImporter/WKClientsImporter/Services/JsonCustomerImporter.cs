@@ -10,8 +10,13 @@ using WKClientsImporter.Models;
 
 namespace WKClientsImporter.Services
 {
-    public class JsonCustomerImporter : IDataImporter
+    public class JsonCustomerImporter : IFileFormatImporter
     {
+        public bool CanImport(string filePath)
+        {
+            return string.Equals(Path.GetExtension(filePath), ".json", StringComparison.OrdinalIgnoreCase);
+        }
+
         public async Task<List<Customer>> ImportAsync(string filePath, IProgress<int> progress)
         {
             return await Task.Run(() =>
