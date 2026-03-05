@@ -129,8 +129,45 @@ namespace WKClientsImporter.Views
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            _storageService.Save(_customers);
+            if (!SaveChangesDialog(e))
+            {
+                return;
+            }
+
             base.OnFormClosing(e);
+        }
+
+        private bool SaveChangesDialog(FormClosingEventArgs e)
+        {
+            var result = MessageBox.Show(
+                "Do you want to save changes before closing?",
+                "Save changes",
+                MessageBoxButtons.YesNoCancel,
+                MessageBoxIcon.Question,
+                MessageBoxDefaultButton.Button1);
+
+            if (result == DialogResult.Cancel)
+            {
+                e.Cancel = true;
+                return false;
+            }
+
+            if (result == DialogResult.Yes)
+            {
+                try
+                {
+                    _storageService.Save(_customers);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error saving data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    // Cancel close so user can retry or investigate
+                    e.Cancel = true;
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }
