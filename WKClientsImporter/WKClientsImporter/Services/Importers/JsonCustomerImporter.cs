@@ -12,9 +12,14 @@ namespace WKClientsImporter.Services
 {
     public class JsonCustomerImporter : IFileFormatImporter
     {
+
+        public string FileExtension { get => ".json"; }
+        public List<string> GetSupportedFileExtensions() => new List<string> { FileExtension };
+
+
         public bool CanImport(string filePath)
         {
-            return string.Equals(Path.GetExtension(filePath), ".json", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(Path.GetExtension(filePath), FileExtension, StringComparison.OrdinalIgnoreCase);
         }
 
         public async Task<List<Customer>> ImportAsync(string filePath, IProgress<int> progress)

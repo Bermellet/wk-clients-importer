@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using WKClientsImporter.Interfaces;
 using WKClientsImporter.Models;
@@ -10,8 +12,8 @@ namespace WKClientsImporter.Views
     public partial class MainForm : Form
     {
         private BindingList<Customer> _customers;
-        private readonly IDataImporter _importerService;
         private readonly IStorageService _storageService;
+        private readonly IDataImporter _importerService;
         private readonly ITemplateBuilder _templateBuilder;
 
         public MainForm(IStorageService storageService, IDataImporter importerService,
@@ -31,11 +33,10 @@ namespace WKClientsImporter.Views
             dgvCustomers.DataSource = _customers;
         }
 
-        // TODO: Data validations
-        // TODO: Avoid blocking Task.Run, IProgress<T> ?
-        private async void btnImportCsv_Click(object sender, EventArgs e)
+        private async void btnImport_Click(object sender, EventArgs e)
         {
-            OpenFileDialog dialog = new OpenFileDialog { Filter = "CSV Files|*.csv" }; // TODO; Single file, get extensions from service
+            var filterExtensions = GetFileFilterExtensions();
+            OpenFileDialog dialog = new OpenFileDialog { Filter = filterExtensions };
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
@@ -45,7 +46,6 @@ namespace WKClientsImporter.Views
                 {
                     var importedData = await _importerService.ImportAsync(dialog.FileName, progress);
 
-                    // Actualizamos BindingList (la UI se refresca sola)
                     foreach (var item in importedData)
                     {
                         _customers.Add(item);
@@ -61,67 +61,58 @@ namespace WKClientsImporter.Views
             }
         }
 
-        private async void btnImportJson_Click(object sender, EventArgs e)
+        private string GetFileFilterExtensions()
         {
-            OpenFileDialog dialog = new OpenFileDialog { Filter = "JSON Files|*.json" };
-
-            if (dialog.ShowDialog() == DialogResult.OK)
-            {
-                var progress = new Progress<int>(v => pbImport.Value = v);
-
-                try
-                {
-                    var importedData = await _importerService.ImportAsync(dialog.FileName, progress);
-
-                    // Actualizamos BindingList (la UI se refresca sola)
-                    foreach (var customer in importedData)
-                    {
-                        _customers.Add(customer);
-                    }
-
-                    pbImport.Value = 0; // Reset
-                    MessageBox.Show($"{importedData.Count} customers have been imported");
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error importing: {ex.Message}");
-                }
-            }
+            var fileExtensions = _importerService.GetSupportedFileExtensions();
+            var filter = string.Join("|", fileExtensions.ConvertAll(ext => $"{ext.TrimStart('.').ToUpper()} Files|*{ext}"));
+            return filter;
         }
 
-        private async void btnCsvTemplate_Click(object sender, EventArgs e)
+        private async void btnTemplate_Click(object sender, EventArgs e)
         {
-            using (var dialog = new SaveFileDialog { Filter = "CSV Files|*.csv", FileName = "clients_template.csv" })
+            // Obtener extensiones soportadas por el servicio
+            var fileExtensions = _importerService.GetSupportedFileExtensions();
+            if (fileExtensions == null || fileExtensions.Count == 0)
             {
-                if (dialog.ShowDialog() == DialogResult.OK)
+                MessageBox.Show("No supported file formats available.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            // Mostrar diálogo para que el usuario elija el formato
+            using (var formatDialog = new TemplateFormatDialog(fileExtensions))
+            {
+                if (formatDialog.ShowDialog(this) != DialogResult.OK)
                 {
+                    return;
+                }
+
+                var selectedExt = formatDialog.SelectedExtension; // ejemplo ".csv" o ".json"
+                if (string.IsNullOrWhiteSpace(selectedExt))
+                {
+                    MessageBox.Show("No format selected.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // Construir filtro simple para SaveFileDialog basado en la extensión seleccionada
+                var extWithoutDot = selectedExt.TrimStart('.').ToUpperInvariant();
+                var filter = $"{extWithoutDot} Files|*{selectedExt}";
+
+                using (var dialog = new SaveFileDialog { Filter = filter, FileName = $"clients_template{selectedExt}" })
+                {
+                    if (dialog.ShowDialog(this) != DialogResult.OK)
+                    {
+                        return;
+                    }
+
                     try
                     {
-                        await _templateBuilder.BuildCsvTemplateAsync(dialog.FileName);
-                        MessageBox.Show("CSV template correctly generated", "Template created", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        // Informar al servicio del formato elegido; el servicio decide qué motor usar.
+                        await _templateBuilder.BuildTemplateAsync(dialog.FileName, selectedExt);
+                        MessageBox.Show("Template correctly generated", "Template created", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Error creating CSV template: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
-            }
-        }
-
-        private async void btnJsonTemplate_Click(object sender, EventArgs e)
-        {
-            using (var dialog = new SaveFileDialog { Filter = "JSON Files|*.json", FileName = "clients_template.json" })
-            {
-                if (dialog.ShowDialog() == DialogResult.OK)
-                {
-                    try
-                    {
-                        await _templateBuilder.BuildJsonTemplateAsync(dialog.FileName);
-                        MessageBox.Show("JSON template correctly generated", "Template created", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Error creating JSON template: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show($"Error creating template: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
             }

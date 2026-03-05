@@ -12,9 +12,12 @@ namespace WKClientsImporter.Services
 {
     public class CsvCustomerImporter : IFileFormatImporter
     {
+        public string FileExtension { get => ".csv"; }
+        public List<string> GetSupportedFileExtensions() => new List<string> { FileExtension };
+
         public bool CanImport(string filePath)
         {
-            return string.Equals(Path.GetExtension(filePath), ".csv", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(Path.GetExtension(filePath), FileExtension, StringComparison.OrdinalIgnoreCase);
         }
 
         public async Task<List<Customer>> ImportAsync(string filePath, IProgress<int> progress)

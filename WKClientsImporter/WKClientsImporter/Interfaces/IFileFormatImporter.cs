@@ -1,12 +1,9 @@
-using System;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using WKClientsImporter.Models;
 
 namespace WKClientsImporter.Interfaces
 {
     public interface IFileFormatImporter : IDataImporter
     {
+        string FileExtension { get; }
         bool CanImport(string filePath);
     }
 }

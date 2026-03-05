@@ -1,9 +1,7 @@
-﻿using CsvHelper;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.ComponentModel.DataAnnotations;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -16,72 +14,76 @@ namespace WKClientsImporter.Services
 {
     public class TemplateBuilderService : ITemplateBuilder
     {
-        public async Task BuildCsvTemplateAsync(string filePath)
+        public Task BuildTemplateAsync(string filePath, string extension)
         {
-            ValidatePath(filePath);
-
-            await Task.Run(() =>
+            // TODO: Optimize distinguishing by extension, maybe using a dictionary of builders
+            if (string.Equals(extension, ".csv", StringComparison.OrdinalIgnoreCase))
             {
-                var props = typeof(Customer)
-                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(p => p.CanRead && p.CanWrite)
-                    .ToArray();
-
-                using (var writer = new StreamWriter(filePath, false, Encoding.UTF8))
-                using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
-                {
-                    // Delimiter for excel
-                    csv.WriteField("sep=,");
-                    csv.NextRecord();
-
-                    // Headers
-                    foreach (var prop in props)
-                    {
-                        csv.WriteField(prop.Name);
-                    }
-                    csv.NextRecord();
-
-                    // Hints validation
-                    //foreach (var prop in props)
-                    //{
-                    //    StringBuilder hints = GenerateFieldHints(prop);
-                    //    csv.WriteField(hints.ToString());
-                    //}
-                    //csv.NextRecord();
-                }
-            });
+                return BuildCsvTemplateAsync(filePath);
+            }
+            else if (string.Equals(extension, ".json", StringComparison.OrdinalIgnoreCase))
+            {
+                return BuildJsonTemplateAsync(filePath);
+            }
+            else
+            {
+                throw new NotSupportedException($"Unsupported template format '{extension}'");
+            }
         }
 
-
-        public async Task BuildJsonTemplateAsync(string filePath)
+        private async Task BuildCsvTemplateAsync(string filePath)
         {
             ValidatePath(filePath);
 
-            await Task.Run(() =>
+            var props = typeof(Customer)
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.CanRead && p.CanWrite)
+                .ToArray();
+
+            // Abrir FileStream en modo asíncrono y usar StreamWriter.WriteAsync para no bloquear
+            var dir = Path.GetDirectoryName(filePath);
+            using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
+            using (var writer = new StreamWriter(fs, Encoding.UTF8))
             {
-                var props = typeof(Customer)
-                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(p => p.CanRead && p.CanWrite)
-                    .ToArray();
+                // Línea de delimitador para Excel
+                await writer.WriteLineAsync("sep=,").ConfigureAwait(false);
 
-                var templateObj = new JObject();
-                //var hintsObj = new JObject();
+                // Cabeceras (CSV simple, sin escapar ya que son nombres de propiedades)
+                var header = string.Join(",", props.Select(p => p.Name));
+                await writer.WriteLineAsync(header).ConfigureAwait(false);
 
-                foreach (var prop in props)
-                {
-                    templateObj[prop.Name] = JValue.CreateString(string.Empty);
-                    //StringBuilder hints = GenerateFieldHints(prop);
-                    //hintsObj[prop.Name] = JValue.CreateString(hints.ToString());
-                }
+                // No añadimos filas de ejemplo para mantener low-memory y simplicidad.
+                await writer.FlushAsync().ConfigureAwait(false);
+            }
+        }
 
-                var root = new JArray
-                {
-                    templateObj,
-                    //["hints"] = hintsObj
-                };
+        private async Task BuildJsonTemplateAsync(string filePath)
+        {
+            ValidatePath(filePath);
 
-                File.WriteAllText(filePath, root.ToString(Formatting.Indented), Encoding.UTF8);
-            });
+            var props = typeof(Customer)
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.CanRead && p.CanWrite)
+                .ToArray();
+
+            // Construimos el objeto en memoria (pequeño: sólo propiedades) y lo serializamos de forma asíncrona
+            var templateObj = new JObject();
+            foreach (var prop in props)
+            {
+                templateObj[prop.Name] = JValue.CreateString(string.Empty);
+            }
+
+            var root = new JArray { templateObj };
+
+            // Serializar a string y escribir asíncronamente usando FileStream/StreamWriter
+            var json = root.ToString(Formatting.Indented);
+
+            using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.Asynchronous))
+            using (var writer = new StreamWriter(fs, Encoding.UTF8))
+            {
+                await writer.WriteAsync(json).ConfigureAwait(false);
+                await writer.FlushAsync().ConfigureAwait(false);
+            }
         }
 
         private void ValidatePath(string filePath)
@@ -98,6 +100,7 @@ namespace WKClientsImporter.Services
                 Directory.CreateDirectory(dir);
             }
         }
+
         private StringBuilder GenerateFieldHints(PropertyInfo prop)
         {
             var hints = new StringBuilder();

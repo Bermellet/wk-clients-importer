@@ -18,6 +18,11 @@ namespace WKClientsImporter.Services
             _importers = importers ?? throw new ArgumentNullException(nameof(importers));
         }
 
+        public List<string> GetSupportedFileExtensions()
+        {
+            return _importers.Select(i => i.FileExtension).ToList();
+        }
+
         public async Task<List<Customer>> ImportAsync(string filePath, IProgress<int> progress)
         {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("filePath is required", nameof(filePath));
