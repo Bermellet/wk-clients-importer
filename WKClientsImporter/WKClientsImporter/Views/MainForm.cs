@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Drawing;
 using System.Windows.Forms;
 using WKClientsImporter.Interfaces;
 using WKClientsImporter.Models;
@@ -35,8 +34,9 @@ namespace WKClientsImporter.Views
 
         private async void btnImport_Click(object sender, EventArgs e)
         {
-            var filterExtensions = GetFileFilterExtensions();
-            OpenFileDialog dialog = new OpenFileDialog { Filter = filterExtensions };
+            var fileExtensions = _importerService.GetSupportedFileExtensions();
+            var filter = string.Join("|", fileExtensions.ConvertAll(ext => $"{ext.TrimStart('.').ToUpper()} Files|*{ext}"));
+            OpenFileDialog dialog = new OpenFileDialog { Filter = filter };
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
@@ -61,16 +61,8 @@ namespace WKClientsImporter.Views
             }
         }
 
-        private string GetFileFilterExtensions()
-        {
-            var fileExtensions = _importerService.GetSupportedFileExtensions();
-            var filter = string.Join("|", fileExtensions.ConvertAll(ext => $"{ext.TrimStart('.').ToUpper()} Files|*{ext}"));
-            return filter;
-        }
-
         private async void btnTemplate_Click(object sender, EventArgs e)
         {
-            // Obtener extensiones soportadas por el servicio
             var fileExtensions = _importerService.GetSupportedFileExtensions();
             if (fileExtensions == null || fileExtensions.Count == 0)
             {
@@ -78,7 +70,6 @@ namespace WKClientsImporter.Views
                 return;
             }
 
-            // Mostrar diálogo para que el usuario elija el formato
             using (var formatDialog = new TemplateFormatDialog(fileExtensions))
             {
                 if (formatDialog.ShowDialog(this) != DialogResult.OK)
@@ -86,14 +77,13 @@ namespace WKClientsImporter.Views
                     return;
                 }
 
-                var selectedExt = formatDialog.SelectedExtension; // ejemplo ".csv" o ".json"
+                var selectedExt = formatDialog.SelectedExtension;
                 if (string.IsNullOrWhiteSpace(selectedExt))
                 {
                     MessageBox.Show("No format selected.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
-                // Construir filtro simple para SaveFileDialog basado en la extensión seleccionada
                 var extWithoutDot = selectedExt.TrimStart('.').ToUpperInvariant();
                 var filter = $"{extWithoutDot} Files|*{selectedExt}";
 
@@ -106,7 +96,6 @@ namespace WKClientsImporter.Views
 
                     try
                     {
-                        // Informar al servicio del formato elegido; el servicio decide qué motor usar.
                         await _templateBuilder.BuildTemplateAsync(dialog.FileName, selectedExt);
                         MessageBox.Show("Template correctly generated", "Template created", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
