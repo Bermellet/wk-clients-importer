@@ -2,6 +2,7 @@
 using System;
 using System.Windows.Forms;
 using WKClientsImporter.Interfaces;
+using WKClientsImporter.Localization;
 using WKClientsImporter.Services;
 using WKClientsImporter.Views;
 
@@ -24,6 +25,8 @@ namespace WKClientsImporter
             services.AddSingleton<IDataImporter, FileImporterService>();
             services.AddSingleton<IFileFormatImporter, CsvClienteImporter>();
             services.AddSingleton<IFileFormatImporter, JsonClienteImporter>();
+            // Localization
+            services.AddSingleton<IStringLocalizer, JsonFileStringLocalizer>();
 
             var provider = services.BuildServiceProvider();
             Application.Run(provider.GetRequiredService<MainForm>());

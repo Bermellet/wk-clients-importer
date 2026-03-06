@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using WKClientsImporter.Interfaces;
+using WKClientsImporter.Localization;
 using WKClientsImporter.Models;
 
 namespace WKClientsImporter.Views
@@ -15,14 +14,16 @@ namespace WKClientsImporter.Views
         private readonly IStorageService _storageService;
         private readonly IDataImporter _importerService;
         private readonly ITemplateBuilder _templateBuilder;
+        private readonly IStringLocalizer _localizer;
 
         public MainForm(IStorageService storageService, IDataImporter importerService,
-            ITemplateBuilder templateBuilder)
+            ITemplateBuilder templateBuilder, IStringLocalizer localizer)
         {
             InitializeComponent();
             _storageService = storageService;
             _importerService = importerService;
             _templateBuilder = templateBuilder;
+            _localizer = localizer;
             LoadInitialData();
         }
 
@@ -52,11 +53,11 @@ namespace WKClientsImporter.Views
                     }
 
                     pbImport.Value = 0; // Reset
-                    MessageBox.Show($"{importedData.Count} clientes have been imported");
+                    MessageBox.Show(_localizer.Get("ImportedCount", importedData.Count), _localizer.Get("InformationTitle"), MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error importing: {ex.Message}");
+                    MessageBox.Show(_localizer.Get("ErrorImporting", ex.Message), _localizer.Get("ErrorTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
@@ -64,21 +65,29 @@ namespace WKClientsImporter.Views
         private string GetFileFilterExtensions()
         {
             var fileExtensions = _importerService.GetSupportedFileExtensions();
-            var filter = string.Join("|", fileExtensions.ConvertAll(ext => $"{ext.TrimStart('.').ToUpper()} Files|*{ext}"));
-            return filter;
+            if (fileExtensions == null || fileExtensions.Count == 0) return string.Empty;
+
+            var parts = new List<string>();
+            foreach (var ext in fileExtensions)
+            {
+                var extWithoutDot = ext.TrimStart('.').ToUpperInvariant();
+                var label = _localizer.Get("FilesLabel");
+                label = string.Format(label, extWithoutDot);
+                parts.Add($"{label}|*{ext}");
+            }
+
+            return string.Join("|", parts);
         }
 
         private async void btnTemplate_Click(object sender, EventArgs e)
         {
-            // Obtener extensiones soportadas por el servicio
             var fileExtensions = _importerService.GetSupportedFileExtensions();
             if (fileExtensions == null || fileExtensions.Count == 0)
             {
-                MessageBox.Show("No supported file formats available.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(_localizer.Get("NoSupportedFileFormats"), _localizer.Get("ErrorTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            // Mostrar diálogo para que el usuario elija el formato
             using (var formatDialog = new TemplateFormatDialog(fileExtensions))
             {
                 if (formatDialog.ShowDialog(this) != DialogResult.OK)
@@ -89,11 +98,10 @@ namespace WKClientsImporter.Views
                 var selectedExt = formatDialog.SelectedExtension; // ejemplo ".csv" o ".json"
                 if (string.IsNullOrWhiteSpace(selectedExt))
                 {
-                    MessageBox.Show("No format selected.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(_localizer.Get("NoFormatSelected"), _localizer.Get("ErrorTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
-                // Construir filtro simple para SaveFileDialog basado en la extensión seleccionada
                 var extWithoutDot = selectedExt.TrimStart('.').ToUpperInvariant();
                 var filter = $"{extWithoutDot} Files|*{selectedExt}";
 
@@ -106,13 +114,12 @@ namespace WKClientsImporter.Views
 
                     try
                     {
-                        // Informar al servicio del formato elegido; el servicio decide qué motor usar.
                         await _templateBuilder.BuildTemplateAsync(dialog.FileName, selectedExt);
-                        MessageBox.Show("Template correctly generated", "Template created", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        MessageBox.Show(_localizer.Get("TemplateCreated"), _localizer.Get("TemplateCreatedTitle"), MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Error creating template: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show(_localizer.Get("ErrorCreatingTemplate", ex.Message), _localizer.Get("ErrorTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
             }
@@ -131,8 +138,8 @@ namespace WKClientsImporter.Views
         private bool SaveChangesDialog(FormClosingEventArgs e)
         {
             var result = MessageBox.Show(
-                "Do you want to save changes before closing?",
-                "Save changes",
+                _localizer.Get("SaveChangesMessage"),
+                _localizer.Get("SaveChangesTitle"),
                 MessageBoxButtons.YesNoCancel,
                 MessageBoxIcon.Question,
                 MessageBoxDefaultButton.Button1);
@@ -151,8 +158,7 @@ namespace WKClientsImporter.Views
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error saving data: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    // Cancel close so user can retry or investigate
+                    MessageBox.Show(_localizer.Get("ErrorSavingData", ex.Message), _localizer.Get("ErrorTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                     e.Cancel = true;
                     return false;
                 }

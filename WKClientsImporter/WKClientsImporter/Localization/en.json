@@ -1,0 +1,15 @@
+﻿{
+  "FilesLabel": "{0} Files",
+  "ImportedCount": "{0} customers have been imported",
+  "ErrorImporting": "Error importing: {0}",
+  "TemplateCreated": "Template correctly generated",
+  "TemplateCreatedTitle": "Template created",
+  "ErrorCreatingTemplate": "Error creating template: {0}",
+  "NoSupportedFileFormats": "No supported file formats available.",
+  "NoFormatSelected": "No format selected.",
+  "ErrorSavingData": "Error saving data: {0}",
+  "SaveChangesMessage": "Do you want to save changes before closing?",
+  "SaveChangesTitle": "Save changes",
+  "ErrorTitle": "Error",
+  "InformationTitle": "Information"
+}

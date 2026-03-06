@@ -1,0 +1,15 @@
+﻿{
+  "FilesLabel": "{0} Archivos",
+  "ImportedCount": "Se han importado {0} clientes",
+  "ErrorImporting": "Error al importar: {0}",
+  "TemplateCreated": "Plantilla creada correctamente",
+  "TemplateCreatedTitle": "Plantilla creada",
+  "ErrorCreatingTemplate": "Error al crear la plantilla: {0}",
+  "NoSupportedFileFormats": "No hay formatos de fichero soportados.",
+  "NoFormatSelected": "No se ha seleccionado ningún formato.",
+  "ErrorSavingData": "Error al guardar datos: {0}",
+  "SaveChangesMessage": "¿Desea guardar los cambios antes de cerrar?",
+  "SaveChangesTitle": "Guardar cambios",
+  "ErrorTitle": "Error",
+  "InformationTitle": "Información"
+}
