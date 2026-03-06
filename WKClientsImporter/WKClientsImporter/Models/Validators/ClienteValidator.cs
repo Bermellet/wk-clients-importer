@@ -7,25 +7,25 @@ using System.Threading.Tasks;
 
 namespace WKClientsImporter.Models.Validators
 {
-    public static class CustomerValidator
+    public static class ClienteValidator
     {
-        public static ValidationResult ValidateBirthdate(DateTime date, ValidationContext context)
+        public static ValidationResult ValidateFechaNacimiento(DateTime date, ValidationContext context)
         {
             if (date > DateTime.Now)
             {
-                return new ValidationResult("Birthdate cannot be future");
+                return new ValidationResult("Fecha de Nacimiento no puede ser futura");
             }
             return ValidationResult.Success;
         }
 
-        // Método genérico para validar cualquier objeto Customer
-        public static bool TryValidate(Customer customer, out List<string> errors)
+        // Método genérico para validar cualquier objeto Cliente
+        public static bool TryValidate(Cliente cliente, out List<string> errors)
         {
-            var context = new ValidationContext(customer);
+            var context = new ValidationContext(cliente);
             var results = new List<ValidationResult>();
             errors = new List<string>();
 
-            bool isValid = Validator.TryValidateObject(customer, context, results, true);
+            bool isValid = Validator.TryValidateObject(cliente, context, results, true);
 
             if (!isValid)
             {

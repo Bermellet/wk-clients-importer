@@ -9,9 +9,6 @@ namespace WKClientsImporter
 {
     internal static class Program
     {
-        /// <summary>
-        /// Punto de entrada principal para la aplicación.
-        /// </summary>
         [STAThread]
         static void Main()
         {
@@ -25,8 +22,8 @@ namespace WKClientsImporter
             services.AddSingleton<ITemplateBuilder, TemplateBuilderService>();
             // Importing services
             services.AddSingleton<IDataImporter, FileImporterService>();
-            services.AddSingleton<IFileFormatImporter, CsvCustomerImporter>();
-            services.AddSingleton<IFileFormatImporter, JsonCustomerImporter>();
+            services.AddSingleton<IFileFormatImporter, CsvClienteImporter>();
+            services.AddSingleton<IFileFormatImporter, JsonClienteImporter>();
 
             var provider = services.BuildServiceProvider();
             Application.Run(provider.GetRequiredService<MainForm>());

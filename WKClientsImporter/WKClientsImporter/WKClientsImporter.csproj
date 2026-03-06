@@ -86,8 +86,8 @@
     <Compile Include="Interfaces\IStorageService.cs" />
     <Compile Include="Interfaces\ITemplateBuilder.cs" />
     <Compile Include="Models\BaseEntity.cs" />
-    <Compile Include="Models\Customer.cs" />
-    <Compile Include="Models\Validators\CustomerValidator.cs" />
+    <Compile Include="Models\Cliente.cs" />
+    <Compile Include="Models\Validators\ClienteValidator.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\FileImporterService.cs" />

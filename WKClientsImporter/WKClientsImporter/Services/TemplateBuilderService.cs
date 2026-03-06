@@ -35,7 +35,7 @@ namespace WKClientsImporter.Services
         {
             ValidatePath(filePath);
 
-            var props = typeof(Customer)
+            var props = typeof(Cliente)
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.CanRead && p.CanWrite)
                 .ToArray();
@@ -61,7 +61,7 @@ namespace WKClientsImporter.Services
         {
             ValidatePath(filePath);
 
-            var props = typeof(Customer)
+            var props = typeof(Cliente)
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(p => p.CanRead && p.CanWrite)
                 .ToArray();

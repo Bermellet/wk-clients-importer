@@ -10,18 +10,18 @@ namespace WKClientsImporter.Services
     {
         private readonly string _localDbPath = "clients_store.json";
 
-        public void Save(IEnumerable<Customer> customers)
+        public void Save(IEnumerable<Cliente> clientes)
         {
-            string json = JsonConvert.SerializeObject(customers, Formatting.Indented);
+            string json = JsonConvert.SerializeObject(clientes, Formatting.Indented);
             File.WriteAllText(_localDbPath, json);
         }
 
-        public List<Customer> Load()
+        public List<Cliente> Load()
         {
-            if (!File.Exists(_localDbPath)) return new List<Customer>();
+            if (!File.Exists(_localDbPath)) return new List<Cliente>();
 
             string json = File.ReadAllText(_localDbPath);
-            return JsonConvert.DeserializeObject<List<Customer>>(json) ?? new List<Customer>();
+            return JsonConvert.DeserializeObject<List<Cliente>>(json) ?? new List<Cliente>();
         }
     }
 }

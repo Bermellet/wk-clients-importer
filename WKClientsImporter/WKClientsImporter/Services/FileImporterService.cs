@@ -23,7 +23,7 @@ namespace WKClientsImporter.Services
             return _importers.Select(i => i.FileExtension).ToList();
         }
 
-        public async Task<List<Customer>> ImportAsync(string filePath, IProgress<int> progress)
+        public async Task<List<Cliente>> ImportAsync(string filePath, IProgress<int> progress)
         {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("filePath is required", nameof(filePath));
 

@@ -11,7 +11,7 @@ namespace WKClientsImporter.Views
 {
     public partial class MainForm : Form
     {
-        private BindingList<Customer> _customers;
+        private BindingList<Cliente> _clientes;
         private readonly IStorageService _storageService;
         private readonly IDataImporter _importerService;
         private readonly ITemplateBuilder _templateBuilder;
@@ -28,9 +28,9 @@ namespace WKClientsImporter.Views
 
         private void LoadInitialData()
         {
-            var data = _storageService.Load() ?? new List<Customer>();
-            _customers = new BindingList<Customer>(data);
-            dgvCustomers.DataSource = _customers;
+            var data = _storageService.Load() ?? new List<Cliente>();
+            _clientes = new BindingList<Cliente>(data);
+            dgvClientes.DataSource = _clientes;
         }
 
         private async void btnImport_Click(object sender, EventArgs e)
@@ -48,11 +48,11 @@ namespace WKClientsImporter.Views
 
                     foreach (var item in importedData)
                     {
-                        _customers.Add(item);
+                        _clientes.Add(item);
                     }
 
                     pbImport.Value = 0; // Reset
-                    MessageBox.Show($"{importedData.Count} customers have been imported");
+                    MessageBox.Show($"{importedData.Count} clientes have been imported");
                 }
                 catch (Exception ex)
                 {
@@ -147,7 +147,7 @@ namespace WKClientsImporter.Views
             {
                 try
                 {
-                    _storageService.Save(_customers);
+                    _storageService.Save(_clientes);
                 }
                 catch (Exception ex)
                 {

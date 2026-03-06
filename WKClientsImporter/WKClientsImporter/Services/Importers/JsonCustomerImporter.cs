@@ -10,7 +10,7 @@ using WKClientsImporter.Models;
 
 namespace WKClientsImporter.Services
 {
-    public class JsonCustomerImporter : IFileFormatImporter
+    public class JsonClienteImporter : IFileFormatImporter
     {
 
         public string FileExtension { get => ".json"; }
@@ -22,7 +22,7 @@ namespace WKClientsImporter.Services
             return string.Equals(Path.GetExtension(filePath), FileExtension, StringComparison.OrdinalIgnoreCase);
         }
 
-        public async Task<List<Customer>> ImportAsync(string filePath, IProgress<int> progress)
+        public async Task<List<Cliente>> ImportAsync(string filePath, IProgress<int> progress)
         {
             return await Task.Run(() =>
             {
@@ -40,7 +40,7 @@ namespace WKClientsImporter.Services
                     else if (token.Type == JTokenType.Object)
                     {
                         var obj = (JObject)token;
-                        // Buscar una propiedad que contenga un array (p. ej. { "customers": [ ... ] })
+                        // Buscar una propiedad que contenga un array (p. ej. { "clientes": [ ... ] })
                         var arrayProp = obj.Properties().FirstOrDefault(p => p.Value.Type == JTokenType.Array);
                         if (arrayProp != null)
                         {
@@ -57,14 +57,14 @@ namespace WKClientsImporter.Services
                         items = new List<JToken>();
                     }
 
-                    var records = new List<Customer>();
+                    var records = new List<Cliente>();
                     // Feedback del progreso
                     int total = items.Count;
 
                     for (int i = 0; i < items.Count; i++)
                     {
-                        var customer = items[i].ToObject<Customer>();
-                        records.Add(customer);
+                        var cliente = items[i].ToObject<Cliente>();
+                        records.Add(cliente);
                         progress?.Report(((i + 1) * 100) / total);
                     }
 
@@ -73,11 +73,11 @@ namespace WKClientsImporter.Services
             });
         }
 
-        public async Task<List<Customer>> ImportAsyncBytes(string filePath, IProgress<int> progress)
+        public async Task<List<Cliente>> ImportAsyncBytes(string filePath, IProgress<int> progress)
         {
             return await Task.Run(() =>
             {
-                var customers = new List<Customer>();
+                var clientes = new List<Cliente>();
                 var serializer = new JsonSerializer();
 
                 using (var sr = new StreamReader(filePath))
@@ -99,8 +99,8 @@ namespace WKClientsImporter.Services
 
                         if (reader.TokenType == JsonToken.StartObject)
                         {
-                            var customer = serializer.Deserialize<Customer>(reader);
-                            customers.Add(customer);
+                            var cliente = serializer.Deserialize<Cliente>(reader);
+                            clientes.Add(cliente);
 
                             // Reportar progreso basado en la posición del stream
                             if (totalBytes > 0)
@@ -111,7 +111,7 @@ namespace WKClientsImporter.Services
                         }
                     }
                 }
-                return customers;
+                return clientes;
             });
         }
     }

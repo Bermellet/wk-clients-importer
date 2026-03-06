@@ -10,7 +10,7 @@ using WKClientsImporter.Models;
 
 namespace WKClientsImporter.Services
 {
-    public class CsvCustomerImporter : IFileFormatImporter
+    public class CsvClienteImporter : IFileFormatImporter
     {
         public string FileExtension { get => ".csv"; }
         public List<string> GetSupportedFileExtensions() => new List<string> { FileExtension };
@@ -20,7 +20,7 @@ namespace WKClientsImporter.Services
             return string.Equals(Path.GetExtension(filePath), FileExtension, StringComparison.OrdinalIgnoreCase);
         }
 
-        public async Task<List<Customer>> ImportAsync(string filePath, IProgress<int> progress)
+        public async Task<List<Cliente>> ImportAsync(string filePath, IProgress<int> progress)
         {
             return await Task.Run(() =>
             {
@@ -30,14 +30,14 @@ namespace WKClientsImporter.Services
                     csv.Read();
                     csv.ReadHeader();
 
-                    var records = new List<Customer>();
+                    var records = new List<Cliente>();
                     // Feedback del progreso
                     int total = File.ReadLines(filePath).Count();
                     int current = 0;
 
                     while (csv.Read())
                     {
-                        records.Add(csv.GetRecord<Customer>());
+                        records.Add(csv.GetRecord<Cliente>());
                         current++;
                         progress?.Report((current * 100) / total);
                     }
