@@ -1,4 +1,5 @@
 ﻿using CsvHelper;
+using CsvHelper.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -25,23 +26,35 @@ namespace WKClientsImporter.Services
             return await Task.Run(() =>
             {
                 using (var reader = new StreamReader(filePath))
-                using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
                 {
-                    csv.Read();
-                    csv.ReadHeader();
+                    // Leer la primera línea para detectar "sep="
+                    string firstLine = reader.ReadLine();
+                    string delimiter = ",";
 
-                    var records = new List<Cliente>();
-                    // Feedback del progreso
-                    int total = File.ReadLines(filePath).Count();
-                    int current = 0;
-
-                    while (csv.Read())
+                    if (firstLine != null && firstLine.StartsWith("sep="))
                     {
-                        records.Add(csv.GetRecord<Cliente>());
-                        current++;
-                        progress?.Report((current * 100) / total);
+                        delimiter = firstLine.Substring(4);
                     }
-                    return records;
+
+                    var config = new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = delimiter };
+                    using (var csv = new CsvReader(reader, config))
+                    {
+                        csv.Read();
+                        csv.ReadHeader();
+
+                        var records = new List<Cliente>();
+                        int total = File.ReadLines(filePath).Count();
+                        if (firstLine != null && firstLine.StartsWith("sep=")) total--; // ajustar progreso si había sep=
+                        int current = 0;
+
+                        while (csv.Read())
+                        {
+                            records.Add(csv.GetRecord<Cliente>());
+                            current++;
+                            progress?.Report((current * 100) / Math.Max(1, total));
+                        }
+                        return records;
+                    }
                 }
             });
         }
