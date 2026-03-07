@@ -1,86 +1,62 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using WKClientsImporter.Localization;
 
 namespace WKClientsImporter.Views
 {
     // Diálogo mínimo para elegir el formato (extensión) de fichero.
-    public class TemplateFormatDialog : Form
+    public partial class TemplateFormatDialog : Form
     {
-        private readonly ComboBox _cbFormats;
-        private readonly Button _btnOk;
-        private readonly Button _btnCancel;
-
         public string SelectedExtension { get; private set; }
+        private readonly IStringLocalizer _localizer;
 
-        public TemplateFormatDialog(IList<string> extensions)
+
+        public TemplateFormatDialog(IStringLocalizer _localizer, IList<string> extensions)
         {
-            Text = "Select template format";
-            FormBorderStyle = FormBorderStyle.FixedDialog;
-            StartPosition = FormStartPosition.CenterParent;
-            ClientSize = new Size(360, 110);
-            MaximizeBox = false;
-            MinimizeBox = false;
-            ShowInTaskbar = false;
+            InitializeComponent();
+            this._localizer = _localizer;
+            ApplyLocalizer();
+            PopulateComboBox(extensions);
+        }
 
-            var lbl = new Label
-            {
-                Text = "Format:",
-                Location = new Point(12, 15),
-                AutoSize = true
-            };
-            Controls.Add(lbl);
+        private void ApplyLocalizer()
+        {
+            this.Text = _localizer.Get("TemplateFormatDialogTitle");
+            lblFormat.Text = _localizer.Get("LabelFormat");
+            btnOk.Text = _localizer.Get("ButtonOk");
+            btnCancel.Text = _localizer.Get("ButtonCancel");
+        }
 
-            _cbFormats = new ComboBox
-            {
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Location = new Point(70, 10),
-                Size = new Size(270, 24)
-            };
-            Controls.Add(_cbFormats);
+        private void PopulateComboBox(IList<string> extensions)
+        {
+            cbFormats.Items.Clear();
 
-            _btnOk = new Button
-            {
-                Text = "OK",
-                DialogResult = DialogResult.OK,
-                Location = new Point(184, 60),
-                Size = new Size(75, 25)
-            };
-            _btnOk.Click += BtnOk_Click;
-            Controls.Add(_btnOk);
+            var items = (extensions ?? Enumerable.Empty<string>())
+                .Select(e => e.Trim())
+                .Where(e => !string.IsNullOrEmpty(e))
+                .ToList();
 
-            _btnCancel = new Button
-            {
-                Text = "Cancel",
-                DialogResult = DialogResult.Cancel,
-                Location = new Point(265, 60),
-                Size = new Size(75, 25)
-            };
-            Controls.Add(_btnCancel);
-
-            // Rellenar combobox con las extensiones. Mostrar texto legible.
-            var items = (extensions ?? Enumerable.Empty<string>()).Select(e => e.Trim()).Where(e => !string.IsNullOrEmpty(e)).ToList();
             foreach (var ext in items)
             {
-                // Mostrar "CSV (.csv)" o similar
-                var display = ext.StartsWith(".") ? $"{ext.TrimStart('.').ToUpper()} ({ext})" : $"{ext.ToUpper()} ({(ext.StartsWith(".") ? ext : "." + ext)})";
-                _cbFormats.Items.Add(new ComboBoxItem(display, ext.StartsWith(".") ? ext : "." + ext));
+                var normalized = ext.StartsWith(".") ? ext : "." + ext;
+                var display = normalized.StartsWith(".")
+                    ? $"{normalized.TrimStart('.').ToUpper()} ({normalized})"
+                    : $"{normalized.ToUpper()} ({normalized})";
+
+                cbFormats.Items.Add(new ComboBoxItem(display, normalized));
             }
 
-            if (_cbFormats.Items.Count > 0)
+            if (cbFormats.Items.Count > 0)
             {
-                _cbFormats.SelectedIndex = 0;
+                cbFormats.SelectedIndex = 0;
             }
-
-            AcceptButton = _btnOk;
-            CancelButton = _btnCancel;
         }
 
         private void BtnOk_Click(object sender, EventArgs e)
         {
-            var sel = _cbFormats.SelectedItem as ComboBoxItem;
+            var sel = cbFormats.SelectedItem as ComboBoxItem;
             SelectedExtension = sel?.Value;
             DialogResult = DialogResult.OK;
             Close();

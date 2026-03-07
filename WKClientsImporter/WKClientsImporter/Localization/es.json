@@ -11,5 +11,12 @@
   "SaveChangesMessage": "¿Desea guardar los cambios antes de cerrar?",
   "SaveChangesTitle": "Guardar cambios",
   "ErrorTitle": "Error",
-  "InformationTitle": "Información"
+  "InformationTitle": "Información",
+  "ButtonImport": "Importar",
+  "ButtonTemplate": "Generar Plantilla",
+  "MainFormTitle": "WK Clients Importer",
+  "TemplateFormatDialogTitle": "Selecciona el formato de plantilla",
+  "LabelFormat": "Formato",
+  "ButtonOk": "Aceptar",
+  "ButtonCancel": "Cancelar"
 }

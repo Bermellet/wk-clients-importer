@@ -11,5 +11,13 @@
   "SaveChangesMessage": "Do you want to save changes before closing?",
   "SaveChangesTitle": "Save changes",
   "ErrorTitle": "Error",
-  "InformationTitle": "Information"
+  "InformationTitle": "Information",
+  "ButtonImport": "Import",
+  "ButtonTemplate": "Generate Template",
+  "MainFormTitle": "WK Clients Importer",
+  "TemplateFormatDialogTitle": "Select template format",
+  "LabelFormat": "Format",
+  "ButtonOk": "OK",
+  "ButtonCancel": "Cancel",
+
 }

@@ -24,7 +24,15 @@ namespace WKClientsImporter.Views
             _importerService = importerService;
             _templateBuilder = templateBuilder;
             _localizer = localizer;
+            ApplyLocalizer();
             LoadInitialData();
+        }
+
+        private void ApplyLocalizer()
+        {
+            this.Text = _localizer.Get("MainFormTitle");
+            btnImport.Text = _localizer.Get("ButtonImport");
+            btnTemplate.Text = _localizer.Get("ButtonTemplate");
         }
 
         private void LoadInitialData()
@@ -88,14 +96,14 @@ namespace WKClientsImporter.Views
                 return;
             }
 
-            using (var formatDialog = new TemplateFormatDialog(fileExtensions))
+            using (var formatDialog = new TemplateFormatDialog(_localizer, fileExtensions))
             {
                 if (formatDialog.ShowDialog(this) != DialogResult.OK)
                 {
                     return;
                 }
 
-                var selectedExt = formatDialog.SelectedExtension; // ejemplo ".csv" o ".json"
+                var selectedExt = formatDialog.SelectedExtension;
                 if (string.IsNullOrWhiteSpace(selectedExt))
                 {
                     MessageBox.Show(_localizer.Get("NoFormatSelected"), _localizer.Get("ErrorTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
