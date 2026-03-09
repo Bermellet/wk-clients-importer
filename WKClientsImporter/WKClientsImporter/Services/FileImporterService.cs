@@ -12,10 +12,13 @@ namespace WKClientsImporter.Services
 
     {
         private readonly IEnumerable<IFileFormatImporter> _importers;
+        private readonly ILogger _logger;
 
-        public FileImporterService(IEnumerable<IFileFormatImporter> importers)
+
+        public FileImporterService(IEnumerable<IFileFormatImporter> importers, ILogger logger)
         {
             _importers = importers ?? throw new ArgumentNullException(nameof(importers));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public List<string> GetSupportedFileExtensions()
@@ -31,7 +34,9 @@ namespace WKClientsImporter.Services
             if (importer == null)
             {
                 var ext = Path.GetExtension(filePath);
-                throw new NotSupportedException($"No importer registered for files with extension '{ext}'");
+                var errorMessage = $"No importer found for file '{filePath}' with extension '{ext}'";
+                _logger.LogError(errorMessage);
+                throw new NotSupportedException(errorMessage);
             }
 
             return await importer.ImportAsync(filePath, progress);

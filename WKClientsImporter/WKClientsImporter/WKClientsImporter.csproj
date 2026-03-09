@@ -83,6 +83,7 @@
   <ItemGroup>
     <Compile Include="Interfaces\IDataImporter.cs" />
     <Compile Include="Interfaces\IFileFormatImporter.cs" />
+    <Compile Include="Interfaces\ILogger.cs" />
     <Compile Include="Interfaces\IStorageService.cs" />
     <Compile Include="Interfaces\ITemplateBuilder.cs" />
     <Compile Include="Localization\IStringLocalizer.cs" />
@@ -93,6 +94,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\FileImporterService.cs" />
+    <Compile Include="Services\FileLogger.cs" />
     <Compile Include="Services\Importers\JsonCustomerImporter.cs" />
     <Compile Include="Services\Importers\CsvCustomerImporter.cs" />
     <Compile Include="Repositories\JsonStorageService.cs" />

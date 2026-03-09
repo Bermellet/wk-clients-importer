@@ -19,14 +19,17 @@ namespace WKClientsImporter
             // Dependency Injection
             var services = new ServiceCollection();
             services.AddTransient<MainForm>();
+            // Repository and template
             services.AddSingleton<IStorageService, JsonStorageService>();
             services.AddSingleton<ITemplateBuilder, TemplateBuilderService>();
-            // Importing services
+            // Importers
             services.AddSingleton<IDataImporter, FileImporterService>();
             services.AddSingleton<IFileFormatImporter, CsvClienteImporter>();
             services.AddSingleton<IFileFormatImporter, JsonClienteImporter>();
             // Localization
             services.AddSingleton<IStringLocalizer, JsonFileStringLocalizer>();
+            // Logger
+            services.AddSingleton<ILogger, FileLogger>();
 
             var provider = services.BuildServiceProvider();
             Application.Run(provider.GetRequiredService<MainForm>());
