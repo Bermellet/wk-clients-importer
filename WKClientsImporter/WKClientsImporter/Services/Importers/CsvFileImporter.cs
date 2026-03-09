@@ -7,13 +7,14 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using WKClientsImporter.Interfaces;
-using WKClientsImporter.Models;
 
 namespace WKClientsImporter.Services
 {
-    public class CsvClienteImporter : IFileFormatImporter
+    public class CsvFileImporter<TModel> : IFileFormatImporter<TModel>
     {
-        public string FileExtension { get => ".csv"; }
+        public string FileExtension => ".csv";
+        public Type ModelType => typeof(TModel);
+
         public List<string> GetSupportedFileExtensions() => new List<string> { FileExtension };
 
         public bool CanImport(string filePath)
@@ -21,7 +22,7 @@ namespace WKClientsImporter.Services
             return string.Equals(Path.GetExtension(filePath), FileExtension, StringComparison.OrdinalIgnoreCase);
         }
 
-        public async Task<List<Cliente>> ImportAsync(string filePath, IProgress<int> progress)
+        public async Task<List<TModel>> ImportAsync(string filePath, IProgress<int> progress)
         {
             return await Task.Run(() =>
             {
@@ -36,20 +37,21 @@ namespace WKClientsImporter.Services
                         delimiter = firstLine.Substring(4);
                     }
 
-                    var config = new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = delimiter };
+                    var config = new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = delimiter, MissingFieldFound = null };
                     using (var csv = new CsvReader(reader, config))
                     {
                         csv.Read();
                         csv.ReadHeader();
 
-                        var records = new List<Cliente>();
+                        var records = new List<TModel>();
                         int total = File.ReadLines(filePath).Count();
                         if (firstLine != null && firstLine.StartsWith("sep=")) total--; // ajustar progreso si había sep=
                         int current = 0;
 
                         while (csv.Read())
                         {
-                            records.Add(csv.GetRecord<Cliente>());
+                            var record = csv.GetRecord<TModel>();
+                            records.Add(record);
                             current++;
                             progress?.Report((current * 100) / Math.Max(1, total));
                         }
@@ -57,6 +59,12 @@ namespace WKClientsImporter.Services
                     }
                 }
             });
+        }
+
+        async Task<IEnumerable<object>> IFileFormatImporter.ImportAsync(string filePath, IProgress<int> progress)
+        {
+            var list = await ImportAsync(filePath, progress).ConfigureAwait(false);
+            return list.Cast<object>();
         }
     }
 }
