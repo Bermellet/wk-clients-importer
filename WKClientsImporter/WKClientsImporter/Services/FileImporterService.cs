@@ -5,16 +5,19 @@ using System.Linq;
 using System.Threading.Tasks;
 using WKClientsImporter.Interfaces;
 using WKClientsImporter.Models;
+using WKClientsImporter.Models.Validators;
 
 namespace WKClientsImporter.Services
 {
     public class FileImporterService : IDataImporter
     {
         private readonly IEnumerable<IFileFormatImporter> _importers;
+        private readonly ILogger _logger;
 
-        public FileImporterService(IEnumerable<IFileFormatImporter> importers)
+        public FileImporterService(IEnumerable<IFileFormatImporter> importers, ILogger logger)
         {
             _importers = importers ?? throw new ArgumentNullException(nameof(importers));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public List<string> GetSupportedFileExtensions()
@@ -40,10 +43,34 @@ namespace WKClientsImporter.Services
             }
 
             var objects = await importer.ImportAsync(filePath, progress).ConfigureAwait(false);
-            // Convertir a List<Cliente> y lanzar si hay incompatibilidades de tipo
+            // Convertir a List<Cliente> y manejar incompatibilidades de tipo
             try
             {
-                return objects.Cast<Cliente>().ToList();
+                var clientes = objects.Cast<Cliente>().ToList();
+
+                var validClients = new List<Cliente>();
+                int invalidCount = 0;
+
+                for (int i = 0; i < clientes.Count; i++)
+                {
+                    var cliente = clientes[i];
+                    if (!ClienteValidator.TryValidate(cliente, out List<string> errors))
+                    {
+                        invalidCount++;
+                        var rowInfo = $"Fila {i + 1}";
+                        var dni = string.IsNullOrWhiteSpace(cliente?.DNI) ? "DNI=N/A" : $"DNI={cliente.DNI}";
+                        var message = $"{rowInfo} ({dni}): {string.Join("; ", errors)}";
+                        // Loguear el registro erróneo y continuar
+                        _logger?.LogWarning($"Registro inválido importado: {message}");
+                        continue; // ignorar este registro, no añadir a validClients
+                    }
+
+                    validClients.Add(cliente);
+                }
+
+                _logger?.LogInfo($"Importación finalizada. Registros válidos: {validClients.Count}. Registros ignorados por error: {invalidCount}.");
+
+                return validClients;
             }
             catch (InvalidCastException ex)
             {

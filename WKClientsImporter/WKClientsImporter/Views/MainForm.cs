@@ -184,14 +184,50 @@ namespace WKClientsImporter.Views
                 {
                     var importedData = await _importerService.ImportAsync(dialog.FileName, progress);
 
-                    foreach (var item in importedData)
+                    // Contadores para resumen
+                    int added = 0;
+                    int updated = 0;
+                    int ignored = 0;
+
+                    for (int i = 0; i < importedData.Count; i++)
                     {
-                        _clientes.Add(item);
+                        var item = importedData[i];
+
+                        // Si falta DNI no se puede identificar: ignorar y loguear
+                        if (item == null || string.IsNullOrWhiteSpace(item.DNI))
+                        {
+                            ignored++;
+                            _logger?.LogWarning($"Registro importado sin DNI. Índice importado: {i + 1}. Nombre={item?.Nombre}");
+                            continue;
+                        }
+
+                        // Buscar existente por DNI (clave única)
+                        var existing = _clientes.FirstOrDefault(c => string.Equals(c.DNI, item.DNI, StringComparison.OrdinalIgnoreCase));
+                        if (existing != null)
+                        {
+                            // Actualizar campos del existente
+                            existing.Nombre = item.Nombre;
+                            existing.Apellidos = item.Apellidos;
+                            existing.FechaNacimiento = item.FechaNacimiento;
+                            existing.Email = item.Email;
+                            existing.Telefono = item.Telefono;
+
+                            updated++;
+                        }
+                        else
+                        {
+                            // Nuevo registro
+                            _clientes.Add(item);
+                            added++;
+                        }
                     }
 
-                    //((IProgress<int>)progress)?.Report(0); // Reset counter
-                    _logger?.LogInfo(_localizer.Get("ImportedCount", importedData.Count));
-                    MessageBox.Show(_localizer.Get("ImportedCount", importedData.Count), _localizer.Get("InformationTitle"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    // Forzar refresco de la cuadrícula por si no hay INotifyPropertyChanged en Cliente
+                    dgvClientes.Refresh();
+
+                    _logger?.LogInfo($"Importación finalizada. Total importados: {importedData.Count}. Añadidos: {added}. Actualizados: {updated}. Ignorados: {ignored}.");
+                    MessageBox.Show($"Importación finalizada.\nTotal leídos: {importedData.Count}\nAñadidos: {added}\nActualizados: {updated}\nIgnorados: {ignored}",
+                        _localizer.Get("InformationTitle"), MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 catch (Exception ex)
                 {
