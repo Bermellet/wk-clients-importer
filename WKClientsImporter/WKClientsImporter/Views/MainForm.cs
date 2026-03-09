@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
 using WKClientsImporter.Interfaces;
 using WKClientsImporter.Localization;
 using WKClientsImporter.Models;
+using WKClientsImporter.Models.Validators;
 
 namespace WKClientsImporter.Views
 {
@@ -33,6 +35,7 @@ namespace WKClientsImporter.Views
             _logger = logger;
             ApplyLocalizer();
             LoadInitialData();
+            InitializeGridValidations();
         }
 
         private void LoadInitialData()
@@ -225,6 +228,9 @@ namespace WKClientsImporter.Views
                     // Forzar refresco de la cuadrícula por si no hay INotifyPropertyChanged en Cliente
                     dgvClientes.Refresh();
 
+                    // Re-aplicar coloreado según validaciones
+                    ApplyValidationHighlighting();
+
                     _logger?.LogInfo($"Importación finalizada. Total importados: {importedData.Count}. Añadidos: {added}. Actualizados: {updated}. Ignorados: {ignored}.");
                     MessageBox.Show($"Importación finalizada.\nTotal leídos: {importedData.Count}\nAñadidos: {added}\nActualizados: {updated}\nIgnorados: {ignored}",
                         _localizer.Get("InformationTitle"), MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -295,6 +301,93 @@ namespace WKClientsImporter.Views
             }
 
             base.OnFormClosing(e);
+        }
+
+        #endregion
+
+        #region Cell Validations
+
+        private void InitializeGridValidations()
+        {
+            // Data Grid Validation handlers
+            dgvClientes.DataBindingComplete -= DgvClientes_DataBindingComplete;
+            dgvClientes.DataBindingComplete += DgvClientes_DataBindingComplete;
+
+            dgvClientes.CellEndEdit -= DgvClientes_CellEndEdit;
+            dgvClientes.CellEndEdit += DgvClientes_CellEndEdit;
+
+            // Initial Highlighting
+            ApplyValidationHighlighting();
+        }
+
+        private void DgvClientes_DataBindingComplete(object sender, DataGridViewBindingCompleteEventArgs e)
+        {
+            ApplyValidationHighlighting();
+        }
+
+        private void DgvClientes_CellEndEdit(object sender, DataGridViewCellEventArgs e)
+        {
+            // Revalidar solo la fila editada
+            if (e.RowIndex < 0 || e.RowIndex >= dgvClientes.Rows.Count) return;
+            var row = dgvClientes.Rows[e.RowIndex];
+            ApplyValidationHighlightingForRow(row);
+        }
+
+        private void ApplyValidationHighlighting()
+        {
+            foreach (DataGridViewRow row in dgvClientes.Rows)
+            {
+                ApplyValidationHighlightingForRow(row);
+            }
+        }
+
+        private void ApplyValidationHighlightingForRow(DataGridViewRow row)
+        {
+            // Resetear estilos de fila
+            foreach (DataGridViewCell c in row.Cells)
+            {
+                c.Style.BackColor = Color.White;
+                c.ToolTipText = string.Empty;
+            }
+
+            var cliente = row.DataBoundItem as Cliente;
+            if (cliente == null) return;
+
+            var results = ClienteValidator.GetValidationResults(cliente);
+            if (results == null || results.Count == 0) return;
+
+            foreach (var vr in results)
+            {
+                // Si no se especifican miembros, colorear toda la fila
+                var members = vr.MemberNames?.ToList() ?? new List<string>();
+                if (members.Count == 0)
+                {
+                    foreach (DataGridViewCell c in row.Cells)
+                    {
+                        c.Style.BackColor = Color.LightCoral;
+                        // Append mensaje en tooltip
+                        c.ToolTipText = string.IsNullOrEmpty(c.ToolTipText) ? vr.ErrorMessage : c.ToolTipText + "; " + vr.ErrorMessage;
+                    }
+                    continue;
+                }
+
+                foreach (var member in members)
+                {
+                    // Buscar columna que esté enlazada a la propiedad (DataPropertyName) o cuyo Name coincida
+                    var col = dgvClientes.Columns
+                        .Cast<DataGridViewColumn>()
+                        .FirstOrDefault(c => string.Equals(c.DataPropertyName, member, StringComparison.OrdinalIgnoreCase)
+                                             || string.Equals(c.Name, member, StringComparison.OrdinalIgnoreCase)
+                                             || string.Equals(c.HeaderText, member, StringComparison.OrdinalIgnoreCase));
+
+                    if (col != null && col.Index >= 0 && col.Index < row.Cells.Count)
+                    {
+                        var cell = row.Cells[col.Index];
+                        cell.Style.BackColor = Color.LightCoral;
+                        cell.ToolTipText = string.IsNullOrEmpty(cell.ToolTipText) ? vr.ErrorMessage : cell.ToolTipText + "; " + vr.ErrorMessage;
+                    }
+                }
+            }
         }
 
         #endregion

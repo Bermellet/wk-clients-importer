@@ -22,7 +22,6 @@ namespace WKClientsImporter.Services
 
         public List<string> GetSupportedFileExtensions()
         {
-            // Devolver extensiones soportadas para el modelo Cliente
             return _importers
                 .Where(i => i.ModelType == typeof(Cliente))
                 .Select(i => i.FileExtension)
@@ -43,7 +42,6 @@ namespace WKClientsImporter.Services
             }
 
             var objects = await importer.ImportAsync(filePath, progress).ConfigureAwait(false);
-            // Convertir a List<Cliente> y manejar incompatibilidades de tipo
             try
             {
                 var clientes = objects.Cast<Cliente>().ToList();
@@ -60,9 +58,9 @@ namespace WKClientsImporter.Services
                         var rowInfo = $"Fila {i + 1}";
                         var dni = string.IsNullOrWhiteSpace(cliente?.DNI) ? "DNI=N/A" : $"DNI={cliente.DNI}";
                         var message = $"{rowInfo} ({dni}): {string.Join("; ", errors)}";
-                        // Loguear el registro erróneo y continuar
+                        // Log registro erroneo e ignorar
                         _logger?.LogWarning($"Registro inválido importado: {message}");
-                        continue; // ignorar este registro, no añadir a validClients
+                        continue;
                     }
 
                     validClients.Add(cliente);

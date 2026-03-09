@@ -32,7 +32,6 @@ namespace WKClientsImporter
             services.AddSingleton<IFileFormatImporter>(sp => new JsonFileImporter<Cliente>());
             services.AddSingleton<IDataImporter, FileImporterService>();
 
-
             var provider = services.BuildServiceProvider();
             Application.Run(provider.GetRequiredService<MainForm>());
         }

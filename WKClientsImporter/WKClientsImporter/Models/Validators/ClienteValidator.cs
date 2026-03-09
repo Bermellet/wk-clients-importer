@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace WKClientsImporter.Models.Validators
 {
@@ -18,7 +15,6 @@ namespace WKClientsImporter.Models.Validators
             return ValidationResult.Success;
         }
 
-        // Método genérico para validar cualquier objeto Cliente
         public static bool TryValidate(Cliente cliente, out List<string> errors)
         {
             var context = new ValidationContext(cliente);
@@ -33,6 +29,19 @@ namespace WKClientsImporter.Models.Validators
             }
 
             return isValid;
+        }
+
+        public static List<ValidationResult> GetValidationResults(Cliente cliente)
+        {
+            if (cliente == null) return new List<ValidationResult>();
+
+            var context = new ValidationContext(cliente);
+            var results = new List<ValidationResult>();
+
+            // Importante validateAllProperties = true para recoger todas las anotaciones
+            Validator.TryValidateObject(cliente, context, results, true);
+
+            return results;
         }
     }
 }
