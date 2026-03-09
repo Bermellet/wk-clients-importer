@@ -51,7 +51,10 @@ namespace WKClientsImporter.Views
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
-                var progress = new Progress<int>(v => pbImport.Value = v);
+                var progress = new Progress<int>(v => {
+                    pbImport.Value = Math.Min(Math.Max(v, 0), 100);
+                    lblProgressPercent.Text = $"{pbImport.Value}%";
+                });
 
                 try
                 {
@@ -62,7 +65,7 @@ namespace WKClientsImporter.Views
                         _clientes.Add(item);
                     }
 
-                    pbImport.Value = 0; // Reset
+                    //((IProgress<int>)progress)?.Report(0); // Reset counter
                     _logger?.LogInfo(_localizer.Get("ImportedCount", importedData.Count));
                     MessageBox.Show(_localizer.Get("ImportedCount", importedData.Count), _localizer.Get("InformationTitle"), MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }

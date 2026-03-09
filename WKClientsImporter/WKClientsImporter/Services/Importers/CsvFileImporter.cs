@@ -44,8 +44,8 @@ namespace WKClientsImporter.Services
                         csv.ReadHeader();
 
                         var records = new List<TModel>();
-                        int total = File.ReadLines(filePath).Count();
-                        if (firstLine != null && firstLine.StartsWith("sep=")) total--; // ajustar progreso si había sep=
+                        int total = File.ReadLines(filePath).Count() -1; // Descontar header
+                        if (firstLine != null && firstLine.StartsWith("sep=")) total--; // Descontar sep=
                         int current = 0;
 
                         while (csv.Read())
