@@ -3,32 +3,107 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Reflection;
+using System.Linq;
 
 namespace WKClientsImporter.Localization
 {
     public class JsonFileStringLocalizer : IStringLocalizer
     {
-        private readonly Dictionary<string, string> _strings;
+        private readonly object _sync = new object();
+        private Dictionary<string, string> _strings;
+        private string _currentLanguage;
+
+        public event EventHandler LanguageChanged;
 
         public JsonFileStringLocalizer()
         {
-            _strings = LoadStringsForCurrentCulture();
+            _currentLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName ?? "en";
+            _strings = LoadStringsForLanguage(_currentLanguage);
         }
 
-        private Dictionary<string, string> LoadStringsForCurrentCulture()
+        public string CurrentLanguage
+        {
+            get
+            {
+                lock (_sync) { return _currentLanguage; }
+            }
+        }
+
+        public void SetLanguage(string twoLetterISOLanguageName)
+        {
+            if (string.IsNullOrWhiteSpace(twoLetterISOLanguageName)) return;
+
+            lock (_sync)
+            {
+                if (string.Equals(_currentLanguage, twoLetterISOLanguageName, StringComparison.OrdinalIgnoreCase)) return;
+
+                _currentLanguage = twoLetterISOLanguageName;
+                _strings = LoadStringsForLanguage(_currentLanguage);
+            }
+
+            LanguageChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        public List<KeyValuePair<string, string>> GetAvailableLanguages()
+        {
+            var result = new List<KeyValuePair<string, string>>();
+
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            var candidates = new[]
+            {
+                Path.Combine(baseDir, "Localization"),
+                Path.Combine(baseDir, "Resources", "Localization")
+            };
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var dir in candidates)
+            {
+                if (!Directory.Exists(dir)) continue;
+
+                foreach (var file in Directory.GetFiles(dir, "*.json"))
+                {
+                    var code = Path.GetFileNameWithoutExtension(file);
+                    if (string.IsNullOrWhiteSpace(code) || seen.Contains(code)) continue;
+
+                    string display;
+                    try
+                    {
+                        display = new CultureInfo(code).NativeName;
+                    }
+                    catch
+                    {
+                        display = code;
+                    }
+
+                    result.Add(new KeyValuePair<string, string>(code, CultureInfo.CurrentCulture.TextInfo.ToTitleCase(display)));
+                    seen.Add(code);
+                }
+            }
+
+            if (result.Count == 0)
+            {
+                result.Add(new KeyValuePair<string, string>("en", "English"));
+                result.Add(new KeyValuePair<string, string>("es", "Español"));
+            }
+
+            return result;
+        }
+
+        private Dictionary<string, string> LoadStringsForLanguage(string lang)
         {
             var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            // Determinar lenguaje (ej: "es" o "en")
-            var lang = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName ?? "en";
             var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-            var relPath = Path.Combine("Localization", $"{lang}.json");
-            var fallbackPath = Path.Combine("Localization", "en.json");
+            var relPaths = new[]
+            {
+                Path.Combine(baseDir, "Localization", $"{lang}.json"),
+                Path.Combine(baseDir, "Resources", "Localization", $"{lang}.json"),
+                Path.Combine(baseDir, "Localization", "en.json"),
+                Path.Combine(baseDir, "Resources", "Localization", "en.json")
+            };
 
-            string path = File.Exists(Path.Combine(baseDir, relPath)) ? Path.Combine(baseDir, relPath)
-                         : (File.Exists(Path.Combine(baseDir, fallbackPath)) ? Path.Combine(baseDir, fallbackPath) : null);
-
+            string path = relPaths.FirstOrDefault(File.Exists);
             if (path == null) return dict;
 
             try
@@ -42,7 +117,7 @@ namespace WKClientsImporter.Localization
             }
             catch
             {
-                // si falla, devolver diccionario vacío para que Get devuelva la clave
+                // Si falla, devolver diccionario vacío para que Get devuelva la clave
             }
 
             return dict;
@@ -51,8 +126,11 @@ namespace WKClientsImporter.Localization
         public string Get(string key)
         {
             if (string.IsNullOrWhiteSpace(key)) return string.Empty;
-            if (_strings.TryGetValue(key, out var val)) return val;
-            return key; // fallback: devolver la clave para detectar strings faltantes
+            lock (_sync)
+            {
+                if (_strings != null && _strings.TryGetValue(key, out var val)) return val;
+            }
+            return key; // fallback: return key
         }
 
         public string Get(string key, params object[] args)

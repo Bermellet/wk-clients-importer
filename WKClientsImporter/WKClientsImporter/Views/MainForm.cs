@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
+using System.Linq;
 using System.Windows.Forms;
 using WKClientsImporter.Interfaces;
 using WKClientsImporter.Localization;
@@ -17,6 +19,9 @@ namespace WKClientsImporter.Views
         private readonly IStringLocalizer _localizer;
         private readonly ILogger _logger;
 
+        // Flag para evitar reentradas al sincronizar el combo con el localizer
+        private bool _suppressLanguageSelectionChange;
+
         public MainForm(IStorageService storageService, IDataImporter importerService,
             ITemplateBuilder templateBuilder, IStringLocalizer localizer, ILogger logger)
         {
@@ -30,19 +35,137 @@ namespace WKClientsImporter.Views
             LoadInitialData();
         }
 
-        private void ApplyLocalizer()
-        {
-            this.Text = _localizer.Get("MainFormTitle");
-            btnImport.Text = _localizer.Get("ButtonImport");
-            btnTemplate.Text = _localizer.Get("ButtonTemplate");
-        }
-
         private void LoadInitialData()
         {
             var data = _storageService.Load() ?? new List<Cliente>();
             _clientes = new BindingList<Cliente>(data);
             dgvClientes.DataSource = _clientes;
         }
+
+        #region Localization
+
+        private void ApplyLocalizer()
+        {
+            // Subscribe to language change event
+            _localizer.LanguageChanged += Localizer_LanguageChanged;
+
+            // Subscribe to ComboBox change event
+            cbLanguage.SelectedIndexChanged += CbLanguage_SelectedIndexChanged;
+
+            PopulateLanguageCombo();
+            ReloadLocalization();
+        }
+
+        private void PopulateLanguageCombo()
+        {
+            // Evitar que seleccionar programáticamente dispare el handler
+            _suppressLanguageSelectionChange = true;
+
+            var langs = _localizer.GetAvailableLanguages();
+            cbLanguage.DataSource = langs;
+            cbLanguage.DisplayMember = "Value";
+            cbLanguage.ValueMember = "Key";
+
+            var current = _localizer.CurrentLanguage ?? CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+            if (langs.Any(k => string.Equals(k.Key, current, StringComparison.OrdinalIgnoreCase)))
+            {
+                cbLanguage.SelectedValue = current;
+            }
+            else if (langs.Count > 0)
+            {
+                cbLanguage.SelectedIndex = 0;
+            }
+
+            _suppressLanguageSelectionChange = false;
+        }
+
+        private void CbLanguage_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (_suppressLanguageSelectionChange) return;
+
+            // SelectedValue viene del ValueMember ("Key") y debe ser el código de idioma
+            var selected = cbLanguage.SelectedValue as string;
+            if (string.IsNullOrWhiteSpace(selected)) return;
+
+            // Si ya es el idioma actual, no hacemos nada
+            if (string.Equals(selected, _localizer.CurrentLanguage, StringComparison.OrdinalIgnoreCase)) return;
+
+            try
+            {
+                // Evitar que la actualización del localizer vuelva a disparar el cambio de selección
+                _suppressLanguageSelectionChange = true;
+                _localizer.SetLanguage(selected);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError("Error cambiando idioma.", ex);
+            }
+            finally
+            {
+                _suppressLanguageSelectionChange = false;
+            }
+        }
+
+        private void Localizer_LanguageChanged(object sender, EventArgs e)
+        {
+            // Actualizar textos en UI y sincronizar selección del combo
+            if (InvokeRequired)
+            {
+                BeginInvoke(new Action(() =>
+                {
+                    SyncLanguageComboWithLocalizer();
+                    ReloadLocalization();
+                }));
+            }
+            else
+            {
+                SyncLanguageComboWithLocalizer();
+                ReloadLocalization();
+            }
+        }
+
+        private void SyncLanguageComboWithLocalizer()
+        {
+            try
+            {
+                _suppressLanguageSelectionChange = true;
+                var current = _localizer.CurrentLanguage ?? CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+
+                // Si el DataSource no contiene el idioma actual, repoblar (por si han cambiado archivos en disco)
+                var langs = cbLanguage.DataSource as List<KeyValuePair<string, string>>;
+                if (langs == null || !langs.Any(k => string.Equals(k.Key, current, StringComparison.OrdinalIgnoreCase)))
+                {
+                    PopulateLanguageCombo();
+                }
+                else
+                {
+                    cbLanguage.SelectedValue = current;
+                }
+            }
+            finally
+            {
+                _suppressLanguageSelectionChange = false;
+            }
+        }
+
+        private void ReloadLocalization()
+        {
+            try
+            {
+                this.Text = _localizer.Get("MainFormTitle");
+                btnImport.Text = _localizer.Get("ButtonImport");
+                btnTemplate.Text = _localizer.Get("ButtonTemplate");
+                // Reload any other texts
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError("Error applying localization.", ex);
+            }
+        }
+
+        #endregion
+
+        #region Events
 
         private async void btnImport_Click(object sender, EventArgs e)
         {
@@ -51,7 +174,8 @@ namespace WKClientsImporter.Views
 
             if (dialog.ShowDialog() == DialogResult.OK)
             {
-                var progress = new Progress<int>(v => {
+                var progress = new Progress<int>(v =>
+                {
                     pbImport.Value = Math.Min(Math.Max(v, 0), 100);
                     lblProgressPercent.Text = $"{pbImport.Value}%";
                 });
@@ -75,23 +199,6 @@ namespace WKClientsImporter.Views
                     MessageBox.Show(_localizer.Get("ErrorImporting", ex.Message), _localizer.Get("ErrorTitle"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
-        }
-
-        private string GetFileFilterExtensions()
-        {
-            var fileExtensions = _importerService.GetSupportedFileExtensions();
-            if (fileExtensions == null || fileExtensions.Count == 0) return string.Empty;
-
-            var parts = new List<string>();
-            foreach (var ext in fileExtensions)
-            {
-                var extWithoutDot = ext.TrimStart('.').ToUpperInvariant();
-                var label = _localizer.Get("FilesLabel");
-                label = string.Format(label, extWithoutDot);
-                parts.Add($"{label}|*{ext}");
-            }
-
-            return string.Join("|", parts);
         }
 
         private async void btnTemplate_Click(object sender, EventArgs e)
@@ -154,6 +261,27 @@ namespace WKClientsImporter.Views
             base.OnFormClosing(e);
         }
 
+        #endregion
+
+        #region Auxiliary Methods
+
+        private string GetFileFilterExtensions()
+        {
+            var fileExtensions = _importerService.GetSupportedFileExtensions();
+            if (fileExtensions == null || fileExtensions.Count == 0) return string.Empty;
+
+            var parts = new List<string>();
+            foreach (var ext in fileExtensions)
+            {
+                var extWithoutDot = ext.TrimStart('.').ToUpperInvariant();
+                var label = _localizer.Get("FilesLabel");
+                label = string.Format(label, extWithoutDot);
+                parts.Add($"{label}|*{ext}");
+            }
+
+            return string.Join("|", parts);
+        }
+
         private bool SaveChangesDialog(FormClosingEventArgs e)
         {
             var result = MessageBox.Show(
@@ -186,5 +314,8 @@ namespace WKClientsImporter.Views
 
             return true;
         }
+
+        #endregion
+
     }
 }
