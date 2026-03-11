@@ -22,30 +22,48 @@ namespace WKClientsImporter.Services
             return string.Equals(Path.GetExtension(filePath), FileExtension, StringComparison.OrdinalIgnoreCase);
         }
 
+        async Task<IEnumerable<object>> IFileFormatImporter.ImportAsync(string filePath, IProgress<int> progress)
+        {
+            var list = await ImportAsync(filePath, progress).ConfigureAwait(false);
+            return list.Cast<object>();
+        }
+
         public async Task<List<TModel>> ImportAsync(string filePath, IProgress<int> progress)
         {
             return await Task.Run(() =>
             {
                 using (var reader = new StreamReader(filePath))
                 {
-                    // Leer la primera línea para detectar "sep="
+                    // Leer la primera línea para detectar "sep=" o para inferir delimitador
                     string firstLine = reader.ReadLine();
-                    string delimiter = ",";
+                    if (firstLine == null) return new List<TModel>();
 
-                    if (firstLine != null && firstLine.StartsWith("sep="))
+                    var config = new CsvConfiguration(CultureInfo.InvariantCulture) { MissingFieldFound = null };
+                    bool hasSep = firstLine.StartsWith("sep=", StringComparison.OrdinalIgnoreCase);
+                    if (hasSep)
                     {
-                        delimiter = firstLine.Substring(4);
+                        string delimiter = firstLine.Substring(4);
+                        config.Delimiter = delimiter;
+                    }
+                    else
+                    {
+                        string delimiter = CheckDelimiterByFirstLine(firstLine);
+                        config.Delimiter = delimiter;
+
+                        // Volver a la posición inicial para que CsvReader lea la cabecera correcta
+                        reader.BaseStream.Seek(0, SeekOrigin.Begin);
+                        reader.DiscardBufferedData();
                     }
 
-                    var config = new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = delimiter, MissingFieldFound = null };
                     using (var csv = new CsvReader(reader, config))
                     {
                         csv.Read();
                         csv.ReadHeader();
 
                         var records = new List<TModel>();
-                        int total = File.ReadLines(filePath).Count() -1; // Descontar header
-                        if (firstLine != null && firstLine.StartsWith("sep=")) total--; // Descontar sep=
+                        int totalLines = File.ReadLines(filePath).Count();
+                        int headerLines = hasSep ? 2 : 1; // sep= + header, o solo header
+                        int total = Math.Max(1, totalLines - headerLines);
                         int current = 0;
 
                         while (csv.Read())
@@ -53,18 +71,61 @@ namespace WKClientsImporter.Services
                             var record = csv.GetRecord<TModel>();
                             records.Add(record);
                             current++;
-                            progress?.Report((current * 100) / Math.Max(1, total));
+                            progress?.Report((current * 100) / total);
                         }
+                        progress?.Report(100);
                         return records;
                     }
                 }
             });
         }
 
-        async Task<IEnumerable<object>> IFileFormatImporter.ImportAsync(string filePath, IProgress<int> progress)
+        private string CheckDelimiterByFirstLine(string firstLine)
         {
-            var list = await ImportAsync(filePath, progress).ConfigureAwait(false);
-            return list.Cast<object>();
+            // Detectar delimitador probando varios candidatos y contando ocurrencias fuera de comillas
+            string[] candidates = { ",", ";", "\t", "|", ":" };
+            string chosen = ",";
+            int maxCount = -1;
+
+            foreach (var c in candidates)
+            {
+                int count = CountDelimiterOccurrencesInCsvHeader(firstLine, c);
+                if (count > maxCount)
+                {
+                    maxCount = count;
+                    chosen = c;
+                }
+            }
+
+            return chosen;
+        }
+
+        private int CountDelimiterOccurrencesInCsvHeader(string line, string delimiter)
+        {
+            if (string.IsNullOrEmpty(line)) return 0;
+            if (delimiter == null) return 0;
+
+            // Contar ocurrencias del delimitador solo fuera de campos entrecomillados
+            int count = 0;
+            bool inQuotes = false;
+
+            // delimitadores considerados son de 1 carácter en nuestra lista (incluye '\t')
+            char d = delimiter.Length > 0 ? delimiter[0] : '\0';
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                char ch = line[i];
+                if (ch == '"')
+                {
+                    inQuotes = !inQuotes;
+                }
+                else if (!inQuotes && ch == d)
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
     }
 }
