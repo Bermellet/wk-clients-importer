@@ -14,15 +14,14 @@ namespace WKClientsImporter.Models
         [StringLength(50)]
         public string Nombre { get; set; }
 
-        [Required(ErrorMessage = "Apellidos obligatorios")]
+        // Optional Fields
         [StringLength(50)]
         public string Apellidos { get; set; }
 
         [DataType(DataType.Date)]
         [CustomValidation(typeof(ClienteValidator), "ValidateFechaNacimiento")]
-        public DateTime FechaNacimiento { get; set; }
+        public DateTime? FechaNacimiento { get; set; }
 
-        [Required]
         [EmailAddress(ErrorMessage = "Email con formato incorrecto")]
         public string Email { get; set; }
 

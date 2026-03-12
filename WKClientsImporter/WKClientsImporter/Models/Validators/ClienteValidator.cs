@@ -6,7 +6,7 @@ namespace WKClientsImporter.Models.Validators
 {
     public static class ClienteValidator
     {
-        public static ValidationResult ValidateFechaNacimiento(DateTime date, ValidationContext context)
+        public static ValidationResult ValidateFechaNacimiento(DateTime? date, ValidationContext context)
         {
             if (date > DateTime.Now)
             {

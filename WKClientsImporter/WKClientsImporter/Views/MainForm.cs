@@ -4,7 +4,9 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using System.ComponentModel.DataAnnotations;
 using WKClientsImporter.Interfaces;
 using WKClientsImporter.Localization;
 using WKClientsImporter.Models;
@@ -353,41 +355,98 @@ namespace WKClientsImporter.Views
             var cliente = row.DataBoundItem as Cliente;
             if (cliente == null) return;
 
+            // 1) Procesar errores de DataAnnotations: DNI y Nombre deben marcarse en rojo; el resto (formato) en amarillo
             var results = ClienteValidator.GetValidationResults(cliente);
-            if (results == null || results.Count == 0) return;
-
             foreach (var vr in results)
             {
-                // Si no se especifican miembros, colorear toda la fila
                 var members = vr.MemberNames?.ToList() ?? new List<string>();
                 if (members.Count == 0)
                 {
+                    // Error global -> marcar toda la fila en rojo (problema serio)
                     foreach (DataGridViewCell c in row.Cells)
                     {
-                        c.Style.BackColor = Color.LightCoral;
-                        // Append mensaje en tooltip
-                        c.ToolTipText = string.IsNullOrEmpty(c.ToolTipText) ? vr.ErrorMessage : c.ToolTipText + "; " + vr.ErrorMessage;
+                        SetCellHighlight(c, Color.LightCoral, vr.ErrorMessage);
                     }
                     continue;
                 }
 
                 foreach (var member in members)
                 {
-                    // Buscar columna que esté enlazada a la propiedad (DataPropertyName) o cuyo Name coincida
-                    var col = dgvClientes.Columns
-                        .Cast<DataGridViewColumn>()
-                        .FirstOrDefault(c => string.Equals(c.DataPropertyName, member, StringComparison.OrdinalIgnoreCase)
-                                             || string.Equals(c.Name, member, StringComparison.OrdinalIgnoreCase)
-                                             || string.Equals(c.HeaderText, member, StringComparison.OrdinalIgnoreCase));
+                    bool isRequiredField = string.Equals(member, nameof(Cliente.DNI), StringComparison.OrdinalIgnoreCase)
+                                           || string.Equals(member, nameof(Cliente.Nombre), StringComparison.OrdinalIgnoreCase);
 
+                    var col = FindColumnByMember(member);
                     if (col != null && col.Index >= 0 && col.Index < row.Cells.Count)
                     {
                         var cell = row.Cells[col.Index];
-                        cell.Style.BackColor = Color.LightCoral;
-                        cell.ToolTipText = string.IsNullOrEmpty(cell.ToolTipText) ? vr.ErrorMessage : cell.ToolTipText + "; " + vr.ErrorMessage;
+                        if (string.Equals(col.Name, "Email", StringComparison.CurrentCultureIgnoreCase) && string.IsNullOrEmpty((string)cell.FormattedValue)) continue; // EmailAddressAttribute permitir null/empty
+                        var color = isRequiredField ? Color.LightCoral : Color.LightYellow;
+                        SetCellHighlight(cell, color, vr.ErrorMessage);
                     }
                 }
             }
+
+            // 2) Validaciones adicionales realizadas en MainForm para campos no obligatorios:
+            // Apellidos: si existe, longitud máxima 50
+            if (!string.IsNullOrWhiteSpace(cliente.Apellidos) && cliente.Apellidos.Length > 50)
+            {
+                var col = FindColumnByMember(nameof(Cliente.Apellidos));
+                if (col != null) SetCellHighlight(row.Cells[col.Index], Color.LightYellow, "Apellidos demasiado largo (máx 50)");
+            }
+
+            // FechaNacimiento: si tiene valor distinto de default(DateTime), comprobar que no sea futura
+            if (cliente.FechaNacimiento != default(DateTime))
+            {
+                var fechaResult = ClienteValidator.ValidateFechaNacimiento(cliente.FechaNacimiento, new ValidationContext(cliente));
+                if (fechaResult != ValidationResult.Success)
+                {
+                    var col = FindColumnByMember(nameof(Cliente.FechaNacimiento));
+                    if (col != null) SetCellHighlight(row.Cells[col.Index], Color.LightYellow, fechaResult.ErrorMessage);
+                }
+            }
+
+            // Email: si existe, comprobar formato
+            if (!string.IsNullOrWhiteSpace(cliente.Email))
+            {
+                var emailAttr = new EmailAddressAttribute();
+                if (!emailAttr.IsValid(cliente.Email))
+                {
+                    var col = FindColumnByMember(nameof(Cliente.Email));
+                    if (col != null) SetCellHighlight(row.Cells[col.Index], Color.LightYellow, "Email con formato incorrecto");
+                }
+            }
+
+            // Telefono: si existe, comprobar patrón numérico entre 9 y 15 dígitos
+            if (!string.IsNullOrWhiteSpace(cliente.Telefono))
+            {
+                if (!Regex.IsMatch(cliente.Telefono, @"^[0-9]{9,15}$"))
+                {
+                    var col = FindColumnByMember(nameof(Cliente.Telefono));
+                    if (col != null) SetCellHighlight(row.Cells[col.Index], Color.LightYellow, "Teléfono con formato incorrecto (9-15 dígitos)");
+                }
+            }
+        }
+
+        private DataGridViewColumn FindColumnByMember(string member)
+        {
+            if (string.IsNullOrWhiteSpace(member)) return null;
+            return dgvClientes.Columns
+                .Cast<DataGridViewColumn>()
+                .FirstOrDefault(c => string.Equals(c.DataPropertyName, member, StringComparison.OrdinalIgnoreCase)
+                                     || string.Equals(c.Name, member, StringComparison.OrdinalIgnoreCase)
+                                     || string.Equals(c.HeaderText, member, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private void SetCellHighlight(DataGridViewCell cell, Color color, string message)
+        {
+            if (cell == null) return;
+
+            // Si la celda ya está marcada en rojo, no sobrescribir con amarillo
+            if (cell.Style.BackColor == Color.LightCoral && color != Color.LightCoral) return;
+
+            // Priorizar rojo sobre amarillo, si el color que se quiere aplicar es rojo siempre aplicarlo
+            cell.Style.BackColor = color;
+            cell.ToolTipText = string.IsNullOrEmpty(cell.ToolTipText) ? message : cell.ToolTipText + "; " + message;
         }
 
         #endregion

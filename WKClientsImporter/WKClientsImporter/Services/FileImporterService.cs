@@ -60,7 +60,7 @@ namespace WKClientsImporter.Services
                         var message = $"{rowInfo} ({dni}): {string.Join("; ", errors)}";
                         // Log registro erroneo e ignorar
                         _logger?.LogWarning($"Registro inválido importado: {message}");
-                        continue;
+                        //continue;
                     }
 
                     validClients.Add(cliente);
