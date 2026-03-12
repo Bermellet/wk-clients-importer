@@ -379,6 +379,7 @@ namespace WKClientsImporter.Views
                     if (col != null && col.Index >= 0 && col.Index < row.Cells.Count)
                     {
                         var cell = row.Cells[col.Index];
+                        if (string.Equals(col.Name, "Email", StringComparison.CurrentCultureIgnoreCase) && string.IsNullOrEmpty((string)cell.FormattedValue)) continue; // EmailAddressAttribute permitir null/empty
                         var color = isRequiredField ? Color.LightCoral : Color.LightYellow;
                         SetCellHighlight(cell, color, vr.ErrorMessage);
                     }
